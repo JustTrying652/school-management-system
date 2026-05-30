@@ -7,6 +7,7 @@ import { Plus, Trash2, X } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
 import ConfirmModal from "../../components/ConfirmModal";
 import TableSkeleton from "../../components/TableSkeleton";
+import ReportCardPrint from "../../components/ReportCardPrint";
 
 const GRADES = ["Grade 10", "Grade 11", "Grade 12"];
 
@@ -54,6 +55,7 @@ const emptyForm = {
 };
 
 export default function Results() {
+  const [showPrint, setShowPrint] = useState(false);
   const [confirmModal, setConfirmModal] = useState({ open: false, message: "", onConfirm: null });
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("records");
@@ -402,6 +404,16 @@ export default function Results() {
                       </tbody>
                     </table>
                   )}
+                  {reportStudent && reportResults.length > 0 && (
+  <div className="flex items-end">
+    <button
+      onClick={() => setShowPrint(true)}
+      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-xl transition"
+    >
+      Print Report Card
+    </button>
+  </div>
+)}
                 </div>
               )}
             </div>
@@ -539,6 +551,14 @@ export default function Results() {
     onCancel={() => setConfirmModal({ open: false, message: "", onConfirm: null })}
   />
 )}
+      {showPrint && reportStudentData && (
+        <ReportCardPrint
+          student={reportStudentData}
+          results={reportResults}
+          exam={reportExam}
+          onClose={() => setShowPrint(false)}
+        />
+      )}
     </div>
   );
 }
