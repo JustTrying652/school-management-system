@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { UserPlus, Pencil, Trash2, X } from "lucide-react";
+import { useToast } from "../../contexts/ToastContext";
 
 const emptyForm = {
   firstName: "",
@@ -14,6 +15,7 @@ const emptyForm = {
 };
 
 export default function Students() {
+  const { toast } = useToast();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -69,31 +71,34 @@ export default function Students() {
     e.preventDefault();
     setSaving(true);
     try {
-      if (editingId) {
-        await updateDoc(doc(db, "students", editingId), form);
-      } else {
-        await addDoc(collection(db, "students"), {
-          ...form,
-          createdAt: new Date(),
-        });
-      }
-      await fetchStudents();
-      closeModal();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSaving(false);
-    }
+  if (editingId) {
+    await updateDoc(doc(db, "students", editingId), form);
+    toast({ message: "Student updated successfully." });
+  } else {
+    await addDoc(collection(db, "students"), {
+      ...form,
+      createdAt: new Date(),
+    });
+    toast({ message: "Student added successfully." });
+  }
+  await fetchStudents();
+  closeModal();
+} catch (err) {
+  console.error(err);
+  toast({ message: "Something went wrong. Please try again.", type: "error" });
+}
   }
 
   async function handleDelete(id) {
     if (!window.confirm("Are you sure you want to delete this student?")) return;
     try {
-      await deleteDoc(doc(db, "students", id));
-      await fetchStudents();
-    } catch (err) {
-      console.error(err);
-    }
+  await deleteDoc(doc(db, "students", id));
+  await fetchStudents();
+  toast({ message: "Student deleted.", type: "warning" });
+} catch (err) {
+  console.error(err);
+  toast({ message: "Failed to delete student.", type: "error" });
+}
   }
 
   const filtered = students.filter((s) => {
