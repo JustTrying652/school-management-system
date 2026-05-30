@@ -1,17 +1,9 @@
 import { useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
-  LayoutDashboard,
-  Users,
-  GraduationCap,
-  BookOpen,
-  Banknote,
-  ClipboardList,
-  FileText,
-  LogOut,
-  Menu,
-  X,
+  LayoutDashboard, Users, GraduationCap, BookOpen,
+  Banknote, ClipboardList, FileText, LogOut, Menu, X,
 } from "lucide-react";
 
 const navItems = [
@@ -28,6 +20,17 @@ export default function MainLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { logout, currentUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Get current page label for topbar
+  const currentPage = navItems.find((item) =>
+    item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to)
+  );
+
+  // Set browser tab title
+  document.title = currentPage
+    ? `${currentPage.label} — School Admin`
+    : "School Admin";
 
   async function handleLogout() {
     await logout();
@@ -46,9 +49,7 @@ export default function MainLayout({ children }) {
             S
           </div>
           {sidebarOpen && (
-            <span className="font-semibold text-sm leading-tight">
-              School Admin
-            </span>
+            <span className="font-semibold text-sm leading-tight">School Admin</span>
           )}
         </div>
 
@@ -90,12 +91,20 @@ export default function MainLayout({ children }) {
 
         {/* Topbar */}
         <header className="bg-white shadow-sm px-6 py-4 flex items-center justify-between">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+            {currentPage && (
+              <div className="flex items-center gap-2 text-gray-700">
+                <currentPage.icon size={18} className="text-blue-600" />
+                <span className="font-semibold text-sm">{currentPage.label}</span>
+              </div>
+            )}
+          </div>
           <div className="text-sm text-gray-600">
             Logged in as <span className="font-medium text-gray-800">{currentUser?.email}</span>
           </div>
