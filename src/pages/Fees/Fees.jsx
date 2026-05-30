@@ -4,7 +4,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
-import { useToast } from "../..context/ToastContext";
+import { useToast } from "../../context/ToastContext";
 
 const GRADES = ["Grade 10", "Grade 11", "Grade 12"];
 const PAYMENT_METHODS = ["M-Pesa", "Bank Transfer", "Cash"];
