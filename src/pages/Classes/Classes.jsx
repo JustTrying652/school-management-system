@@ -15,6 +15,8 @@ const emptyForm = {
 };
 
 export default function Classes() {
+  const [students, setStudents] = useState([]);
+  const [selectedClass, setSelectedClass] = useState(null);
   const [confirmModal, setConfirmModal] = useState({ open: false, message: "", onConfirm: null });
   const { toast } = useToast();
   const [classes, setClasses] = useState([]);
@@ -25,16 +27,21 @@ export default function Classes() {
   const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
+  const classStudents = selectedClass
+  ? students.filter((s) => s.grade === selectedClass.grade && s.stream === selectedClass.stream)
+  : [];
 
   async function fetchData() {
     setLoading(true);
     try {
-      const [classSnap, teacherSnap] = await Promise.all([
-        getDocs(collection(db, "classes")),
-        getDocs(collection(db, "teachers")),
-      ]);
-      setClasses(classSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      setTeachers(teacherSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      const [classSnap, teacherSnap, stuSnap] = await Promise.all([
+  getDocs(collection(db, "classes")),
+  getDocs(collection(db, "teachers")),
+  getDocs(collection(db, "students")),
+]);
+setClasses(classSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+setTeachers(teacherSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+setStudents(stuSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
     } catch (err) {
       console.error(err);
     } finally {
@@ -182,7 +189,14 @@ export default function Classes() {
               <tbody className="divide-y divide-gray-100">
                 {filtered.map((cls) => (
                   <tr key={cls.id} className="hover:bg-gray-50 transition">
-                    <td className="px-6 py-3 font-medium text-blue-600">{cls.name}</td>
+                    <td className="px-6 py-3 font-medium text-blue-600">
+  <button
+    onClick={() => setSelectedClass(cls)}
+    className="hover:underline"
+  >
+    {cls.name}
+  </button>
+</td>
                     <td className="px-6 py-3">{cls.grade}</td>
                     <td className="px-6 py-3">{cls.stream}</td>
                     <td className="px-6 py-3">{cls.classTeacherName || "—"}</td>
@@ -310,11 +324,64 @@ export default function Classes() {
         </div>
       )}
       {confirmModal.open && (
-  <ConfirmModal
-    message={confirmModal.message}
-    onConfirm={confirmModal.onConfirm}
-    onCancel={() => setConfirmModal({ open: false, message: "", onConfirm: null })}
-  />
+       <ConfirmModal
+         message={confirmModal.message}
+         onConfirm={confirmModal.onConfirm}
+         onCancel={() => setConfirmModal({ open: false, message: "", onConfirm: null })}
+      />
+      )}
+      {selectedClass && (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
+      <div className="flex items-center justify-between px-6 py-4 border-b">
+        <div>
+          <h2 className="font-semibold text-gray-800">{selectedClass.name}</h2>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {selectedClass.grade} · Class Teacher: {selectedClass.classTeacherName || "—"}
+          </p>
+        </div>
+        <button
+          onClick={() => setSelectedClass(null)}
+          className="text-gray-400 hover:text-gray-600"
+        >
+          <X size={18} />
+        </button>
+      </div>
+      <div className="p-6">
+        <p className="text-xs font-medium text-gray-500 mb-3">
+          {classStudents.length} student{classStudents.length !== 1 ? "s" : ""} enrolled
+        </p>
+        {classStudents.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-4">
+            No students found for this class.
+          </p>
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-gray-100">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-gray-600 text-left">
+                <tr>
+                  <th className="px-4 py-2.5 font-medium">Adm No.</th>
+                  <th className="px-4 py-2.5 font-medium">Name</th>
+                  <th className="px-4 py-2.5 font-medium">Gender</th>
+                  <th className="px-4 py-2.5 font-medium">Pathway</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {classStudents.map((s) => (
+                  <tr key={s.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-2.5 text-blue-600 font-medium">{s.admissionNumber}</td>
+                    <td className="px-4 py-2.5">{s.firstName} {s.lastName}</td>
+                    <td className="px-4 py-2.5">{s.gender}</td>
+                    <td className="px-4 py-2.5">{s.pathway || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
 )}
     </div>
   );
