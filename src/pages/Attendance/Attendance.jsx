@@ -4,10 +4,12 @@ import {
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { ClipboardCheck, Trash2 } from "lucide-react";
+import { useToast } from "../../context/ToastContext";
 
 const STATUS = ["Present", "Absent", "Late"];
 
 export default function Attendance() {
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("take");
 
   // Data
@@ -86,36 +88,41 @@ export default function Attendance() {
     if (gradeStudents.length === 0) return alert("No students in this grade.");
     setSaving(true);
     try {
-      await Promise.all(
-        gradeStudents.map((student) =>
-          addDoc(collection(db, "attendance"), {
-            studentId: student.id,
-            studentName: `${student.firstName} ${student.lastName}`,
-            admissionNumber: student.admissionNumber,
-            grade: selectedGrade,
-            date: selectedDate,
-            status: attendanceMap[student.id] || "Present",
-            createdAt: new Date(),
-          })
-        )
-      );
-      await fetchData();
-      setAlreadyTaken(true);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSaving(false);
-    }
+  await Promise.all(
+    gradeStudents.map((student) =>
+      addDoc(collection(db, "attendance"), {
+        studentId: student.id,
+        studentName: `${student.firstName} ${student.lastName}`,
+        admissionNumber: student.admissionNumber,
+        grade: selectedGrade,
+        date: selectedDate,
+        status: attendanceMap[student.id] || "Present",
+        createdAt: new Date(),
+      })
+    )
+  );
+  await fetchData();
+  setAlreadyTaken(true);
+  toast({ message: `Attendance saved for ${selectedGrade}.` });
+} catch (err) {
+  console.error(err);
+  toast({ message: "Failed to save attendance.", type: "error" });
+}
   }
 
   async function handleDeleteDayAttendance() {
-    if (!window.confirm(`Delete all attendance records for ${selectedGrade} on ${selectedDate}?`)) return;
+  if (!window.confirm(`Delete all attendance records for ${selectedGrade} on ${selectedDate}?`)) return;
+  try {
     const toDelete = records.filter(
       (r) => r.grade === selectedGrade && r.date === selectedDate
     );
     await Promise.all(toDelete.map((r) => deleteDoc(doc(db, "attendance", r.id))));
     await fetchData();
+    toast({ message: "Attendance records deleted.", type: "warning" });
+  } catch (err) {
+    toast({ message: "Failed to delete records.", type: "error" });
   }
+}
 
   // History filtered records
   const filteredRecords = records.filter((r) => {

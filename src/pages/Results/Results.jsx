@@ -4,6 +4,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { Plus, Trash2, X } from "lucide-react";
+import { toas, useToast } from "../../context/ToastContext";
 
 const GRADES = ["Grade 10", "Grade 11", "Grade 12"];
 
@@ -51,6 +52,7 @@ const emptyForm = {
 };
 
 export default function Results() {
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("records");
 
   const [results, setResults] = useState([]);
@@ -114,25 +116,30 @@ export default function Results() {
     if (!form.studentId) return alert("Please select a student.");
     setSaving(true);
     try {
-      await addDoc(collection(db, "results"), {
-        ...form,
-        score: Number(form.score),
-        createdAt: new Date(),
-      });
-      await fetchData();
-      setShowModal(false);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSaving(false);
-    }
+  await addDoc(collection(db, "results"), {
+    ...form,
+    score: Number(form.score),
+    createdAt: new Date(),
+  });
+  await fetchData();
+  setShowModal(false);
+  toast({ message: "Result added successfully." });
+} catch (err) {
+  console.error(err);
+  toast({ message: "Failed to add result.", type: "error" });
+}
   }
 
   async function handleDelete(id) {
-    if (!window.confirm("Delete this result?")) return;
+  if (!window.confirm("Delete this result?")) return;
+  try {
     await deleteDoc(doc(db, "results", id));
     await fetchData();
+    toast({ message: "Result deleted.", type: "warning" });
+  } catch (err) {
+    toast({ message: "Failed to delete result.", type: "error" });
   }
+}
 
   const filteredStudentSearch = students.filter((s) => {
     const q = studentSearch.toLowerCase();

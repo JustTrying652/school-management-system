@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
+import { useToast } from "../../context/ToastContext";
 
 const emptyForm = {
   name: "",
@@ -13,6 +14,7 @@ const emptyForm = {
 };
 
 export default function Classes() {
+  const { toast } = useToast();
   const [classes, setClasses] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -83,31 +85,31 @@ export default function Classes() {
     e.preventDefault();
     setSaving(true);
     try {
-      if (editingId) {
-        await updateDoc(doc(db, "classes", editingId), form);
-      } else {
-        await addDoc(collection(db, "classes"), {
-          ...form,
-          createdAt: new Date(),
-        });
-      }
-      await fetchData();
-      closeModal();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSaving(false);
-    }
+  if (editingId) {
+    await updateDoc(doc(db, "classes", editingId), form);
+    toast({ message: "Class updated successfully." });
+  } else {
+    await addDoc(collection(db, "classes"), { ...form, createdAt: new Date() });
+    toast({ message: "Class added successfully." });
+  }
+  await fetchData();
+  closeModal();
+} catch (err) {
+  console.error(err);
+  toast({ message: "Something went wrong. Please try again.", type: "error" });
+}
   }
 
   async function handleDelete(id) {
     if (!window.confirm("Are you sure you want to delete this class?")) return;
     try {
-      await deleteDoc(doc(db, "classes", id));
-      await fetchData();
-    } catch (err) {
-      console.error(err);
-    }
+  await deleteDoc(doc(db, "classes", id));
+  await fetchData();
+  toast({ message: "Class deleted.", type: "warning" });
+} catch (err) {
+  console.error(err);
+  toast({ message: "Failed to delete class.", type: "error" });
+}
   }
 
   const filtered = classes.filter((c) => {

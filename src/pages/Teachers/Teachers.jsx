@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { UserPlus, Pencil, Trash2, X } from "lucide-react";
+import { useToast } from "../../context/ToastContext";
 
 const emptyForm = {
   firstName: "",
@@ -14,6 +15,7 @@ const emptyForm = {
 };
 
 export default function Teachers() {
+  const { toast } = useToast();
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -69,31 +71,31 @@ export default function Teachers() {
     e.preventDefault();
     setSaving(true);
     try {
-      if (editingId) {
-        await updateDoc(doc(db, "teachers", editingId), form);
-      } else {
-        await addDoc(collection(db, "teachers"), {
-          ...form,
-          createdAt: new Date(),
-        });
-      }
-      await fetchTeachers();
-      closeModal();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSaving(false);
-    }
+  if (editingId) {
+    await updateDoc(doc(db, "teachers", editingId), form);
+    toast({ message: "Teacher updated successfully." });
+  } else {
+    await addDoc(collection(db, "teachers"), { ...form, createdAt: new Date() });
+    toast({ message: "Teacher added successfully." });
+  }
+  await fetchTeachers();
+  closeModal();
+} catch (err) {
+  console.error(err);
+  toast({ message: "Something went wrong. Please try again.", type: "error" });
+}
   }
 
   async function handleDelete(id) {
     if (!window.confirm("Are you sure you want to delete this teacher?")) return;
     try {
-      await deleteDoc(doc(db, "teachers", id));
-      await fetchTeachers();
-    } catch (err) {
-      console.error(err);
-    }
+  await deleteDoc(doc(db, "teachers", id));
+  await fetchTeachers();
+  toast({ message: "Teacher deleted.", type: "warning" });
+} catch (err) {
+  console.error(err);
+  toast({ message: "Failed to delete teacher.", type: "error" });
+}
   }
 
   const filtered = teachers.filter((t) => {

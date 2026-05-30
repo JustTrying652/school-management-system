@@ -4,6 +4,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
+import { useToast } from "../..context/ToastContext";
 
 const GRADES = ["Grade 10", "Grade 11", "Grade 12"];
 const PAYMENT_METHODS = ["M-Pesa", "Bank Transfer", "Cash"];
@@ -16,6 +17,7 @@ const emptyPaymentForm = {
 };
 
 export default function Fees() {
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("structures");
 
   // Fee structures
@@ -75,25 +77,31 @@ export default function Fees() {
     e.preventDefault();
     setSavingStructure(true);
     try {
-      if (editingStructureId) {
-        await updateDoc(doc(db, "feeStructures", editingStructureId), structureForm);
-      } else {
-        await addDoc(collection(db, "feeStructures"), { ...structureForm, createdAt: new Date() });
-      }
-      await fetchAll();
-      setShowStructureModal(false);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSavingStructure(false);
-    }
+  if (editingStructureId) {
+    await updateDoc(doc(db, "feeStructures", editingStructureId), structureForm);
+    toast({ message: "Fee structure updated." });
+  } else {
+    await addDoc(collection(db, "feeStructures"), { ...structureForm, createdAt: new Date() });
+    toast({ message: "Fee structure added." });
+  }
+  await fetchAll();
+  setShowStructureModal(false);
+} catch (err) {
+  console.error(err);
+  toast({ message: "Something went wrong.", type: "error" });
+}
   }
 
   async function handleDeleteStructure(id) {
-    if (!window.confirm("Delete this fee structure?")) return;
+  if (!window.confirm("Delete this fee structure?")) return;
+  try {
     await deleteDoc(doc(db, "feeStructures", id));
     await fetchAll();
+    toast({ message: "Fee structure deleted.", type: "warning" });
+  } catch (err) {
+    toast({ message: "Failed to delete.", type: "error" });
   }
+}
 
   // ── Payment handlers ────────────────────────────────────
 
@@ -121,25 +129,30 @@ export default function Fees() {
     if (!paymentForm.studentId) return alert("Please select a student.");
     setSavingPayment(true);
     try {
-      await addDoc(collection(db, "feePayments"), {
-        ...paymentForm,
-        amount: Number(paymentForm.amount),
-        createdAt: new Date(),
-      });
-      await fetchAll();
-      setShowPaymentModal(false);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSavingPayment(false);
-    }
+  await addDoc(collection(db, "feePayments"), {
+    ...paymentForm,
+    amount: Number(paymentForm.amount),
+    createdAt: new Date(),
+  });
+  await fetchAll();
+  setShowPaymentModal(false);
+  toast({ message: "Payment recorded successfully." });
+} catch (err) {
+  console.error(err);
+  toast({ message: "Failed to record payment.", type: "error" });
+}
   }
 
   async function handleDeletePayment(id) {
-    if (!window.confirm("Delete this payment record?")) return;
+  if (!window.confirm("Delete this payment record?")) return;
+  try {
     await deleteDoc(doc(db, "feePayments", id));
     await fetchAll();
+    toast({ message: "Payment record deleted.", type: "warning" });
+  } catch (err) {
+    toast({ message: "Failed to delete.", type: "error" });
   }
+}
 
   // ── Balance helpers ─────────────────────────────────────
 
