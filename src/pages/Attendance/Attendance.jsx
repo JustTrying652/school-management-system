@@ -5,10 +5,12 @@ import {
 import { db } from "../../services/firebase";
 import { ClipboardCheck, Trash2 } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
+import ConfirmModal from "../../components/ConfirmModal";
 
 const STATUS = ["Present", "Absent", "Late"];
 
 export default function Attendance() {
+  const [confirmModal, setConfirmModal] = useState({ open: false, message: "", onConfirm: null });
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("take");
 
@@ -110,18 +112,25 @@ export default function Attendance() {
 }
   }
 
-  async function handleDeleteDayAttendance() {
-  if (!window.confirm(`Delete all attendance records for ${selectedGrade} on ${selectedDate}?`)) return;
-  try {
-    const toDelete = records.filter(
-      (r) => r.grade === selectedGrade && r.date === selectedDate
-    );
-    await Promise.all(toDelete.map((r) => deleteDoc(doc(db, "attendance", r.id))));
-    await fetchData();
-    toast({ message: "Attendance records deleted.", type: "warning" });
-  } catch (err) {
-    toast({ message: "Failed to delete records.", type: "error" });
-  }
+  function handleDeleteDayAttendance() {
+  setConfirmModal({
+    open: true,
+    message: `This will delete all attendance records for ${selectedGrade} on ${selectedDate}.`,
+    onConfirm: async () => {
+      try {
+        const toDelete = records.filter(
+          (r) => r.grade === selectedGrade && r.date === selectedDate
+        );
+        await Promise.all(toDelete.map((r) => deleteDoc(doc(db, "attendance", r.id))));
+        await fetchData();
+        toast({ message: "Attendance records deleted.", type: "warning" });
+      } catch (err) {
+        toast({ message: "Failed to delete records.", type: "error" });
+      } finally {
+        setConfirmModal({ open: false, message: "", onConfirm: null });
+      }
+    },
+  });
 }
 
   // History filtered records
@@ -398,6 +407,13 @@ export default function Attendance() {
           )}
         </>
       )}
+      {confirmModal.open && (
+  <ConfirmModal
+    message={confirmModal.message}
+    onConfirm={confirmModal.onConfirm}
+    onCancel={() => setConfirmModal({ open: false, message: "", onConfirm: null })}
+  />
+)}
     </div>
   );
 }

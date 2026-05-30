@@ -3,6 +3,7 @@ import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "firebase
 import { db } from "../../services/firebase";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
+import ConfirmModal from "../../components/ConfirmModal";
 
 const emptyForm = {
   name: "",
@@ -14,6 +15,7 @@ const emptyForm = {
 };
 
 export default function Classes() {
+  const [confirmModal, setConfirmModal] = useState({ open: false, message: "", onConfirm: null });
   const { toast } = useToast();
   const [classes, setClasses] = useState([]);
   const [teachers, setTeachers] = useState([]);
@@ -100,17 +102,23 @@ export default function Classes() {
 }
   }
 
-  async function handleDelete(id) {
-    if (!window.confirm("Are you sure you want to delete this class?")) return;
-    try {
-  await deleteDoc(doc(db, "classes", id));
-  await fetchData();
-  toast({ message: "Class deleted.", type: "warning" });
-} catch (err) {
-  console.error(err);
-  toast({ message: "Failed to delete class.", type: "error" });
+  function handleDelete(id) {
+  setConfirmModal({
+    open: true,
+    message: "This will permanently delete this class record.",
+    onConfirm: async () => {
+      try {
+        await deleteDoc(doc(db, "classes", id));
+        await fetchData();
+        toast({ message: "Class deleted.", type: "warning" });
+      } catch (err) {
+        toast({ message: "Failed to delete class.", type: "error" });
+      } finally {
+        setConfirmModal({ open: false, message: "", onConfirm: null });
+      }
+    },
+  });
 }
-  }
 
   const filtered = classes.filter((c) => {
     const q = search.toLowerCase();
@@ -301,6 +309,13 @@ export default function Classes() {
           </div>
         </div>
       )}
+      {confirmModal.open && (
+  <ConfirmModal
+    message={confirmModal.message}
+    onConfirm={confirmModal.onConfirm}
+    onCancel={() => setConfirmModal({ open: false, message: "", onConfirm: null })}
+  />
+)}
     </div>
   );
 }

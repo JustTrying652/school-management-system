@@ -3,6 +3,7 @@ import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "firebase
 import { db } from "../../services/firebase";
 import { UserPlus, Pencil, Trash2, X } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
+import ConfirmModal from "../../components/ConfirmModal";
 
 const emptyForm = {
   firstName: "",
@@ -15,6 +16,7 @@ const emptyForm = {
 };
 
 export default function Teachers() {
+  const [confirmModal, setConfirmModal] = useState({ open: false, message: "", onConfirm: null });
   const { toast } = useToast();
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -86,17 +88,23 @@ export default function Teachers() {
 }
   }
 
-  async function handleDelete(id) {
-    if (!window.confirm("Are you sure you want to delete this teacher?")) return;
-    try {
-  await deleteDoc(doc(db, "teachers", id));
-  await fetchTeachers();
-  toast({ message: "Teacher deleted.", type: "warning" });
-} catch (err) {
-  console.error(err);
-  toast({ message: "Failed to delete teacher.", type: "error" });
+  function handleDelete(id) {
+  setConfirmModal({
+    open: true,
+    message: "This will permanently delete this teacher record.",
+    onConfirm: async () => {
+      try {
+        await deleteDoc(doc(db, "teachers", id));
+        await fetchTeachers();
+        toast({ message: "Teacher deleted.", type: "warning" });
+      } catch (err) {
+        toast({ message: "Failed to delete teacher.", type: "error" });
+      } finally {
+        setConfirmModal({ open: false, message: "", onConfirm: null });
+      }
+    },
+  });
 }
-  }
 
   const filtered = teachers.filter((t) => {
     const q = search.toLowerCase();
@@ -303,6 +311,13 @@ export default function Teachers() {
           </div>
         </div>
       )}
+      {confirmModal.open && (
+  <ConfirmModal
+    message={confirmModal.message}
+    onConfirm={confirmModal.onConfirm}
+    onCancel={() => setConfirmModal({ open: false, message: "", onConfirm: null })}
+  />
+)}
     </div>
   );
 }

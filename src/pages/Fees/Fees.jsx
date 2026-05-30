@@ -5,6 +5,7 @@ import {
 import { db } from "../../services/firebase";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
+import ConfirmModal from "../../components/ConfirmModal";
 
 const GRADES = ["Grade 10", "Grade 11", "Grade 12"];
 const PAYMENT_METHODS = ["M-Pesa", "Bank Transfer", "Cash"];
@@ -17,6 +18,7 @@ const emptyPaymentForm = {
 };
 
 export default function Fees() {
+  const [confirmModal, setConfirmModal] = useState({ open: false, message: "", onConfirm: null });
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("structures");
 
@@ -92,15 +94,22 @@ export default function Fees() {
 }
   }
 
-  async function handleDeleteStructure(id) {
-  if (!window.confirm("Delete this fee structure?")) return;
-  try {
-    await deleteDoc(doc(db, "feeStructures", id));
-    await fetchAll();
-    toast({ message: "Fee structure deleted.", type: "warning" });
-  } catch (err) {
-    toast({ message: "Failed to delete.", type: "error" });
-  }
+  function handleDeleteStructure(id) {
+  setConfirmModal({
+    open: true,
+    message: "This will permanently delete this fee structure.",
+    onConfirm: async () => {
+      try {
+        await deleteDoc(doc(db, "feeStructures", id));
+        await fetchAll();
+        toast({ message: "Fee structure deleted.", type: "warning" });
+      } catch (err) {
+        toast({ message: "Failed to delete.", type: "error" });
+      } finally {
+        setConfirmModal({ open: false, message: "", onConfirm: null });
+      }
+    },
+  });
 }
 
   // ── Payment handlers ────────────────────────────────────
@@ -143,15 +152,22 @@ export default function Fees() {
 }
   }
 
-  async function handleDeletePayment(id) {
-  if (!window.confirm("Delete this payment record?")) return;
-  try {
-    await deleteDoc(doc(db, "feePayments", id));
-    await fetchAll();
-    toast({ message: "Payment record deleted.", type: "warning" });
-  } catch (err) {
-    toast({ message: "Failed to delete.", type: "error" });
-  }
+  function handleDeletePayment(id) {
+  setConfirmModal({
+    open: true,
+    message: "This will permanently delete this payment record.",
+    onConfirm: async () => {
+      try {
+        await deleteDoc(doc(db, "feePayments", id));
+        await fetchAll();
+        toast({ message: "Payment record deleted.", type: "warning" });
+      } catch (err) {
+        toast({ message: "Failed to delete.", type: "error" });
+      } finally {
+        setConfirmModal({ open: false, message: "", onConfirm: null });
+      }
+    },
+  });
 }
 
   // ── Balance helpers ─────────────────────────────────────
@@ -584,6 +600,13 @@ export default function Fees() {
           </div>
         </div>
       )}
+      {confirmModal.open && (
+  <ConfirmModal
+    message={confirmModal.message}
+    onConfirm={confirmModal.onConfirm}
+    onCancel={() => setConfirmModal({ open: false, message: "", onConfirm: null })}
+  />
+)}
     </div>
   );
 }
