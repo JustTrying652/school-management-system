@@ -4,6 +4,7 @@ import { db } from "../../services/firebase";
 import { UserPlus, Pencil, Trash2, X } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
 import ConfirmModal from "../../components/ConfirmModal";
+import TableSkeleton from "../../components/TableSkeleton";
 
 const emptyForm = {
   firstName: "",
@@ -11,13 +12,14 @@ const emptyForm = {
   admissionNumber: "",
   grade: "",
   stream: "",
+  pathway: "",
   gender: "",
   parentPhone: "",
 };
 
 export default function Students() {
-  const [confirmModal, setConfirmModal] = useState({ open: false, message: "", onConfirm: null });
   const { toast } = useToast();
+  const [confirmModal, setConfirmModal] = useState({ open: false, message: "", onConfirm: null });
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -39,9 +41,7 @@ export default function Students() {
     }
   }
 
-  useEffect(() => {
-    fetchStudents();
-  }, []);
+  useEffect(() => { fetchStudents(); }, []);
 
   function openAddModal() {
     setForm(emptyForm);
@@ -56,6 +56,7 @@ export default function Students() {
       admissionNumber: student.admissionNumber,
       grade: student.grade,
       stream: student.stream,
+      pathway: student.pathway || "",
       gender: student.gender,
       parentPhone: student.parentPhone,
     });
@@ -73,41 +74,40 @@ export default function Students() {
     e.preventDefault();
     setSaving(true);
     try {
-  if (editingId) {
-    await updateDoc(doc(db, "students", editingId), form);
-    toast({ message: "Student updated successfully." });
-  } else {
-    await addDoc(collection(db, "students"), {
-      ...form,
-      createdAt: new Date(),
-    });
-    toast({ message: "Student added successfully." });
-  }
-  await fetchStudents();
-  closeModal();
-} catch (err) {
-  console.error(err);
-  toast({ message: "Something went wrong. Please try again.", type: "error" });
-}
+      if (editingId) {
+        await updateDoc(doc(db, "students", editingId), form);
+        toast({ message: "Student updated successfully." });
+      } else {
+        await addDoc(collection(db, "students"), { ...form, createdAt: new Date() });
+        toast({ message: "Student added successfully." });
+      }
+      await fetchStudents();
+      closeModal();
+    } catch (err) {
+      console.error(err);
+      toast({ message: "Something went wrong. Please try again.", type: "error" });
+    } finally {
+      setSaving(false);
+    }
   }
 
   function handleDelete(id) {
-  setConfirmModal({
-    open: true,
-    message: "This will permanently delete this student record.",
-    onConfirm: async () => {
-      try {
-        await deleteDoc(doc(db, "students", id));
-        await fetchStudents();
-        toast({ message: "Student deleted.", type: "warning" });
-      } catch (err) {
-        toast({ message: "Failed to delete student.", type: "error" });
-      } finally {
-        setConfirmModal({ open: false, message: "", onConfirm: null });
-      }
-    },
-  });
-}
+    setConfirmModal({
+      open: true,
+      message: "This will permanently delete this student record.",
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, "students", id));
+          await fetchStudents();
+          toast({ message: "Student deleted.", type: "warning" });
+        } catch (err) {
+          toast({ message: "Failed to delete student.", type: "error" });
+        } finally {
+          setConfirmModal({ open: false, message: "", onConfirm: null });
+        }
+      },
+    });
+  }
 
   const filtered = students.filter((s) => {
     const q = search.toLowerCase();
@@ -148,63 +148,65 @@ export default function Students() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-        {loading ? (
-          <div className="p-8 text-center text-gray-400 text-sm">Loading students...</div>
-        ) : filtered.length === 0 ? (
-          <div className="p-8 text-center text-gray-400 text-sm">
-            {search ? "No students match your search." : "No students yet. Add one to get started."}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-600 text-left">
-                <tr>
-                  <th className="px-6 py-3 font-medium">Adm No.</th>
-                  <th className="px-6 py-3 font-medium">Name</th>
-                  <th className="px-6 py-3 font-medium">Grade</th>
-                  <th className="px-6 py-3 font-medium">Pathway</th>
-                  <th className="px-6 py-3 font-medium">Stream</th>
-                  <th className="px-6 py-3 font-medium">Gender</th>
-                  <th className="px-6 py-3 font-medium">Parent Phone</th>
-                  <th className="px-6 py-3 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filtered.map((student) => (
-                  <tr key={student.id} className="hover:bg-gray-50 transition">
-                    <td className="px-6 py-3 font-medium text-blue-600">{student.admissionNumber}</td>
-                    <td className="px-6 py-3">{student.firstName} {student.lastName}</td>
-                    <td className="px-6 py-3">{student.grade}</td>
-                    <td className="px-6 py-3">{student.pathway || "—"}</td>
-                    <td className="px-6 py-3">{student.stream}</td>
-                    <td className="px-6 py-3">{student.gender}</td>
-                    <td className="px-6 py-3">{student.parentPhone}</td>
-                    <td className="px-6 py-3">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => openEditModal(student)}
-                          className="text-gray-400 hover:text-blue-600 transition"
-                        >
-                          <Pencil size={15} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(student.id)}
-                          className="text-gray-400 hover:text-red-500 transition"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </td>
+      {loading ? (
+        <TableSkeleton rows={6} cols={8} />
+      ) : (
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          {filtered.length === 0 ? (
+            <div className="p-8 text-center text-gray-400 text-sm">
+              {search ? "No students match your search." : "No students yet. Add one to get started."}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-gray-600 text-left">
+                  <tr>
+                    <th className="px-6 py-3 font-medium">Adm No.</th>
+                    <th className="px-6 py-3 font-medium">Name</th>
+                    <th className="px-6 py-3 font-medium">Grade</th>
+                    <th className="px-6 py-3 font-medium">Pathway</th>
+                    <th className="px-6 py-3 font-medium">Stream</th>
+                    <th className="px-6 py-3 font-medium">Gender</th>
+                    <th className="px-6 py-3 font-medium">Parent Phone</th>
+                    <th className="px-6 py-3 font-medium">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filtered.map((student) => (
+                    <tr key={student.id} className="hover:bg-gray-50 transition">
+                      <td className="px-6 py-3 font-medium text-blue-600">{student.admissionNumber}</td>
+                      <td className="px-6 py-3">{student.firstName} {student.lastName}</td>
+                      <td className="px-6 py-3">{student.grade}</td>
+                      <td className="px-6 py-3">{student.pathway || "—"}</td>
+                      <td className="px-6 py-3">{student.stream || "—"}</td>
+                      <td className="px-6 py-3">{student.gender}</td>
+                      <td className="px-6 py-3">{student.parentPhone}</td>
+                      <td className="px-6 py-3">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => openEditModal(student)}
+                            className="text-gray-400 hover:text-blue-600 transition"
+                          >
+                            <Pencil size={15} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(student.id)}
+                            className="text-gray-400 hover:text-red-500 transition"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* Modal */}
+      {/* Add/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
@@ -216,7 +218,6 @@ export default function Students() {
                 <X size={18} />
               </button>
             </div>
-
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -277,18 +278,18 @@ export default function Students() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-  <label className="block text-xs font-medium text-gray-600 mb-1">Pathway</label>
-  <select
-    value={form.pathway}
-    onChange={(e) => setForm({ ...form, pathway: e.target.value })}
-    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-  >
-    <option value="">Select pathway</option>
-    <option value="STEM">STEM</option>
-    <option value="Arts & Sports Science">Arts & Sports Science</option>
-    <option value="Social Sciences">Social Sciences</option>
-  </select>
-</div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Pathway</label>
+                  <select
+                    value={form.pathway}
+                    onChange={(e) => setForm({ ...form, pathway: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select pathway</option>
+                    <option value="STEM">STEM</option>
+                    <option value="Arts & Sports Science">Arts & Sports Science</option>
+                    <option value="Social Sciences">Social Sciences</option>
+                  </select>
+                </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Gender</label>
                   <select
@@ -302,15 +303,16 @@ export default function Students() {
                     <option value="Female">Female</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Parent Phone</label>
-                  <input
-                    placeholder="e.g. 0712345678"
-                    value={form.parentPhone}
-                    onChange={(e) => setForm({ ...form, parentPhone: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Parent Phone</label>
+                <input
+                  placeholder="e.g. 0712345678"
+                  value={form.parentPhone}
+                  onChange={(e) => setForm({ ...form, parentPhone: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
               </div>
 
               <div className="flex justify-end gap-3 pt-2">
@@ -333,13 +335,15 @@ export default function Students() {
           </div>
         </div>
       )}
+
+      {/* Confirm Delete Modal */}
       {confirmModal.open && (
-  <ConfirmModal
-    message={confirmModal.message}
-    onConfirm={confirmModal.onConfirm}
-    onCancel={() => setConfirmModal({ open: false, message: "", onConfirm: null })}
-  />
-)}
+        <ConfirmModal
+          message={confirmModal.message}
+          onConfirm={confirmModal.onConfirm}
+          onCancel={() => setConfirmModal({ open: false, message: "", onConfirm: null })}
+        />
+      )}
     </div>
   );
 }

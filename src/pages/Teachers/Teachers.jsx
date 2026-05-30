@@ -4,6 +4,7 @@ import { db } from "../../services/firebase";
 import { UserPlus, Pencil, Trash2, X } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
 import ConfirmModal from "../../components/ConfirmModal";
+import TableSkeleton from "../../components/TableSkeleton";
 
 const emptyForm = {
   firstName: "",
@@ -147,7 +148,7 @@ export default function Teachers() {
       {/* Table */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-gray-400 text-sm">Loading teachers...</div>
+          <TableSkeleton rows={5} cols={7} />
         ) : filtered.length === 0 ? (
           <div className="p-8 text-center text-gray-400 text-sm">
             {search ? "No teachers match your search." : "No teachers yet. Add one to get started."}

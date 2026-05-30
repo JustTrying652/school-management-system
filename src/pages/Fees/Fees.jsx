@@ -6,6 +6,7 @@ import { db } from "../../services/firebase";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
 import ConfirmModal from "../../components/ConfirmModal";
+import TableSkeleton from "../../components/TableSkeleton";
 
 const GRADES = ["Grade 10", "Grade 11", "Grade 12"];
 const PAYMENT_METHODS = ["M-Pesa", "Bank Transfer", "Cash"];
@@ -249,7 +250,7 @@ export default function Fees() {
       </div>
 
       {loading ? (
-        <div className="p-8 text-center text-gray-400 text-sm">Loading...</div>
+        <TableSkeleton rows={5} cols={5} />
       ) : (
         <>
           {/* ── Fee Structures Tab ── */}

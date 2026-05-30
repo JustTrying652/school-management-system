@@ -3,6 +3,7 @@ import { collection, getCountFromServer, getDocs } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { Users, GraduationCap, BookOpen, Banknote, ClipboardList, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import StatsSkeleton from "../../components/StatsSkeleton";
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -71,25 +72,27 @@ export default function Dashboard() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {statCards.map(({ label, key, icon: Icon, color, to }) => (
-          <button
-            key={key}
-            onClick={() => navigate(to)}
-            className="bg-white rounded-2xl shadow-sm p-6 flex items-center gap-4 hover:shadow-md transition text-left w-full"
-          >
-            <div className={`${color} text-white rounded-xl p-3`}>
-              <Icon size={22} />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">{label}</p>
-              <p className="text-2xl font-bold text-gray-800">
-                {loading ? "..." : stats[key]}
-              </p>
-            </div>
-          </button>
-        ))}
-      </div>
+      {loading ? (
+        <StatsSkeleton count={6} />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {statCards.map(({ label, key, icon: Icon, color, to }) => (
+            <button
+              key={key}
+              onClick={() => navigate(to)}
+              className="bg-white rounded-2xl shadow-sm p-6 flex items-center gap-4 hover:shadow-md transition text-left w-full"
+            >
+              <div className={`${color} text-white rounded-xl p-3`}>
+                <Icon size={22} />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">{label}</p>
+                <p className="text-2xl font-bold text-gray-800">{stats[key]}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Quick actions */}
@@ -112,7 +115,17 @@ export default function Dashboard() {
         <div className="bg-white rounded-2xl shadow-sm p-6">
           <h2 className="text-base font-semibold text-gray-700 mb-4">Recent Payments</h2>
           {loading ? (
-            <p className="text-sm text-gray-400">Loading...</p>
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-center justify-between">
+                  <div className="space-y-1.5">
+                    <div className="h-3 bg-gray-200 rounded animate-pulse w-32" />
+                    <div className="h-2.5 bg-gray-100 rounded animate-pulse w-24" />
+                  </div>
+                  <div className="h-3 bg-gray-200 rounded animate-pulse w-20" />
+                </div>
+              ))}
+            </div>
           ) : recentPayments.length === 0 ? (
             <p className="text-sm text-gray-400">No payments recorded yet.</p>
           ) : (

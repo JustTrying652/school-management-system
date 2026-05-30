@@ -6,6 +6,7 @@ import { db } from "../../services/firebase";
 import { ClipboardCheck, Trash2 } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
 import ConfirmModal from "../../components/ConfirmModal";
+import TableSkeleton from "../../components/TableSkeleton";
 
 const STATUS = ["Present", "Absent", "Late"];
 
@@ -186,7 +187,7 @@ export default function Attendance() {
       </div>
 
       {loading ? (
-        <div className="p-8 text-center text-gray-400 text-sm">Loading...</div>
+        <TableSkeleton rows={5} cols={3} />
       ) : (
         <>
           {/* ── Take Attendance Tab ── */}
