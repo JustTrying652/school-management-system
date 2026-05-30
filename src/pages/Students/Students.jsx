@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { UserPlus, Pencil, Trash2, X } from "lucide-react";
-import { useToast } from "../../contexts/ToastContext";
+import { useToast } from "../../context/ToastContext";
 
 const emptyForm = {
   firstName: "",
