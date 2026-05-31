@@ -7,6 +7,8 @@ import { ClipboardCheck, Trash2 } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
 import ConfirmModal from "../../components/ConfirmModal";
 import TableSkeleton from "../../components/TableSkeleton";
+import { openWhatsApp, absenceMessage } from "../../utils/whatsapp";
+import { MessageCircle } from "lucide-react";
 
 const STATUS = ["Present", "Absent", "Late"];
 
@@ -249,6 +251,7 @@ export default function Attendance() {
                             <th className="px-6 py-3 font-medium">Adm No.</th>
                             <th className="px-6 py-3 font-medium">Name</th>
                             <th className="px-6 py-3 font-medium">Status</th>
+                            <th className="px-6 py-3 font-medium">Notify</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
@@ -259,29 +262,49 @@ export default function Attendance() {
                                 {student.firstName} {student.lastName}
                               </td>
                               <td className="px-6 py-3">
-                                <div className="flex gap-2">
-                                  {STATUS.map((s) => (
-                                    <button
-                                      key={s}
-                                      disabled={alreadyTaken}
-                                      onClick={() =>
-                                        setAttendanceMap({ ...attendanceMap, [student.id]: s })
-                                      }
-                                      className={`px-3 py-1 rounded-full text-xs font-medium transition ${
-                                        attendanceMap[student.id] === s
-                                          ? s === "Present"
-                                            ? "bg-green-500 text-white"
-                                            : s === "Absent"
-                                            ? "bg-red-500 text-white"
-                                            : "bg-yellow-400 text-white"
-                                          : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                                      } disabled:opacity-60 disabled:cursor-not-allowed`}
-                                    >
-                                      {s}
-                                    </button>
-                                  ))}
-                                </div>
-                              </td>
+  <div className="flex gap-2">
+    {STATUS.map((s) => (
+      <button
+        key={s}
+        disabled={alreadyTaken}
+        onClick={() =>
+          setAttendanceMap({ ...attendanceMap, [student.id]: s })
+        }
+        className={`px-3 py-1 rounded-full text-xs font-medium transition ${
+          attendanceMap[student.id] === s
+            ? s === "Present"
+              ? "bg-green-500 text-white"
+              : s === "Absent"
+              ? "bg-red-500 text-white"
+              : "bg-yellow-400 text-white"
+            : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+        } disabled:opacity-60 disabled:cursor-not-allowed`}
+      >
+        {s}
+      </button>
+    ))}
+  </div>
+</td>
+<td className="px-6 py-3">
+  {(attendanceMap[student.id] === "Absent" || attendanceMap[student.id] === "Late") && student.parentPhone ? (
+    <button
+      onClick={() => {
+        const message = absenceMessage(
+          `${student.firstName} ${student.lastName}`,
+          student.grade,
+          selectedDate
+        );
+        openWhatsApp(student.parentPhone, message);
+      }}
+      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white transition font-medium"
+    >
+      <MessageCircle size={13} />
+      Notify
+    </button>
+  ) : (
+    <span className="text-xs text-gray-300">—</span>
+  )}
+</td>
                             </tr>
                           ))}
                         </tbody>
@@ -377,6 +400,7 @@ export default function Attendance() {
                               <th className="px-6 py-2 font-medium">Adm No.</th>
                               <th className="px-6 py-2 font-medium">Name</th>
                               <th className="px-6 py-2 font-medium">Status</th>
+                              <th className="px-6 py-2 font-medium">Notify</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-100">
@@ -385,16 +409,41 @@ export default function Attendance() {
                                 <td className="px-6 py-2 text-blue-600">{r.admissionNumber}</td>
                                 <td className="px-6 py-2">{r.studentName}</td>
                                 <td className="px-6 py-2">
-                                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                                    r.status === "Present"
-                                      ? "bg-green-100 text-green-700"
-                                      : r.status === "Absent"
-                                      ? "bg-red-100 text-red-600"
-                                      : "bg-yellow-100 text-yellow-700"
-                                  }`}>
-                                    {r.status}
-                                  </span>
-                                </td>
+  <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+    r.status === "Present"
+      ? "bg-green-100 text-green-700"
+      : r.status === "Absent"
+      ? "bg-red-100 text-red-600"
+      : "bg-yellow-100 text-yellow-700"
+  }`}>
+    {r.status}
+  </span>
+</td>
+<td className="px-6 py-2">
+  {(r.status === "Absent" || r.status === "Late") ? (() => {
+    const student = students.find((s) => s.id === r.studentId);
+    return student?.parentPhone ? (
+      <button
+        onClick={() => {
+          const message = absenceMessage(
+            r.studentName,
+            r.grade,
+            r.date
+          );
+          openWhatsApp(student.parentPhone, message);
+        }}
+        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white transition font-medium"
+      >
+        <MessageCircle size={13} />
+        Notify
+      </button>
+    ) : (
+      <span className="text-xs text-gray-300">No phone</span>
+    );
+  })() : (
+    <span className="text-xs text-gray-300">—</span>
+  )}
+</td>
                               </tr>
                             ))}
                           </tbody>
