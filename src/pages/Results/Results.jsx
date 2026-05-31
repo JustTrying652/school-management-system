@@ -8,6 +8,8 @@ import { useToast } from "../../context/ToastContext";
 import ConfirmModal from "../../components/ConfirmModal";
 import TableSkeleton from "../../components/TableSkeleton";
 import ReportCardPrint from "../../components/ReportCardPrint";
+import { openWhatsApp, reportCardMessage } from "../../utils/whatsapp";
+import { MessageCircle } from "lucide-react";
 
 const GRADES = ["Grade 10", "Grade 11", "Grade 12"];
 
@@ -352,15 +354,33 @@ export default function Results() {
                     </select>
                   </div>
                   {reportStudent && reportResults.length > 0 && (
-                    <div className="flex items-end">
-                      <button
-                        onClick={() => setShowPrint(true)}
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-xl transition"
-                      >
-                        Print Report Card
-                      </button>
-                    </div>
-                  )}
+  <div className="flex items-end gap-3">
+    <button
+      onClick={() => setShowPrint(true)}
+      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-xl transition"
+    >
+      Print Report Card
+    </button>
+    {reportStudentData?.parentPhone ? (
+      <button
+        onClick={() => {
+          const message = reportCardMessage(
+            reportStudentData,
+            reportResults,
+            reportExam
+          );
+          openWhatsApp(reportStudentData.parentPhone, message);
+        }}
+        className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-xl transition"
+      >
+        <MessageCircle size={15} />
+        Send to Parent
+      </button>
+    ) : (
+      <span className="text-xs text-gray-400 self-center">No parent phone on record</span>
+    )}
+  </div>
+)}
                 </div>
               </div>
 
