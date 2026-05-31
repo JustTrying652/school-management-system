@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
+import { useRole } from "./hooks/useRole";
 import Login from "./pages/Auth/Login";
 import Dashboard from "./pages/Dashboard/Dashboard";
 import Students from "./pages/Students/Students";
@@ -8,9 +9,9 @@ import Classes from "./pages/Classes/Classes";
 import Fees from "./pages/Fees/Fees";
 import Attendance from "./pages/Attendance/Attendance";
 import Results from "./pages/Results/Results";
-import MainLayout from "./layouts/MainLayout";
 import Timetable from "./pages/Timetable/Timetable";
 import UserManagement from "./pages/UserManagement/UserManagement";
+import MainLayout from "./layouts/MainLayout";
 
 function ProtectedRoute({ children }) {
   const { currentUser } = useAuth();
@@ -21,19 +22,45 @@ function ProtectedRoute({ children }) {
   );
 }
 
+function RoleRoute({ children, roles }) {
+  const { role } = useRole();
+  const { currentUser } = useAuth();
+  if (!currentUser) return <Navigate to="/login" />;
+  if (!roles.includes(role)) return <Navigate to="/" />;
+  return <MainLayout>{children}</MainLayout>;
+}
+
 function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
-      <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/students" element={<ProtectedRoute><Students /></ProtectedRoute>} />
-      <Route path="/teachers" element={<ProtectedRoute><Teachers /></ProtectedRoute>} />
-      <Route path="/classes" element={<ProtectedRoute><Classes /></ProtectedRoute>} />
-      <Route path="/fees" element={<ProtectedRoute><Fees /></ProtectedRoute>} />
-      <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
-      <Route path="/results" element={<ProtectedRoute><Results /></ProtectedRoute>} />
-      <Route path="/timetable" element={<ProtectedRoute><Timetable /></ProtectedRoute>} />
-      <Route path="/users" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
+      <Route path="/" element={
+        <ProtectedRoute><Dashboard /></ProtectedRoute>
+      } />
+      <Route path="/students" element={
+        <RoleRoute roles={["Principal", "Teacher"]}><Students /></RoleRoute>
+      } />
+      <Route path="/teachers" element={
+        <RoleRoute roles={["Principal"]}><Teachers /></RoleRoute>
+      } />
+      <Route path="/classes" element={
+        <RoleRoute roles={["Principal", "Teacher"]}><Classes /></RoleRoute>
+      } />
+      <Route path="/fees" element={
+        <RoleRoute roles={["Principal", "Bursar"]}><Fees /></RoleRoute>
+      } />
+      <Route path="/attendance" element={
+        <RoleRoute roles={["Principal", "Teacher"]}><Attendance /></RoleRoute>
+      } />
+      <Route path="/results" element={
+        <RoleRoute roles={["Principal", "Teacher"]}><Results /></RoleRoute>
+      } />
+      <Route path="/timetable" element={
+        <RoleRoute roles={["Principal", "Teacher"]}><Timetable /></RoleRoute>
+      } />
+      <Route path="/users" element={
+        <RoleRoute roles={["Principal"]}><UserManagement /></RoleRoute>
+      } />
     </Routes>
   );
 }

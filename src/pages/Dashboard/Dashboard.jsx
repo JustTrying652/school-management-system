@@ -8,11 +8,13 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from "recharts";
+import { useRole } from "../../hooks/useRole";
 
 const GRADE_COLORS = ["#38bdf8", "#818cf8", "#f472b6"];
 const FEE_COLORS = ["#22c55e", "#facc15", "#f87171"];
 
 export default function Dashboard() {
+  const { role } = useRole();
   const [stats, setStats] = useState({
     students: 0, teachers: 0, classes: 0,
     payments: 0, attendance: 0, results: 0,
@@ -104,21 +106,24 @@ export default function Dashboard() {
     fetchStats();
   }, []);
 
-  const statCards = [
-    { label: "Total Students", key: "students", icon: Users, color: "bg-blue-500", to: "/students" },
-    { label: "Total Teachers", key: "teachers", icon: GraduationCap, color: "bg-green-500", to: "/teachers" },
-    { label: "Total Classes", key: "classes", icon: BookOpen, color: "bg-purple-500", to: "/classes" },
-    { label: "Fee Payments", key: "payments", icon: Banknote, color: "bg-yellow-500", to: "/fees" },
-    { label: "Attendance Records", key: "attendance", icon: ClipboardList, color: "bg-pink-500", to: "/attendance" },
-    { label: "Result Records", key: "results", icon: FileText, color: "bg-indigo-500", to: "/results" },
+  const ALL_STAT_CARDS = [
+    { label: "Total Students", key: "students", icon: Users, color: "bg-blue-500", to: "/students", roles: ["Principal", "Teacher"] },
+    { label: "Total Teachers", key: "teachers", icon: GraduationCap, color: "bg-green-500", to: "/teachers", roles: ["Principal"] },
+    { label: "Total Classes", key: "classes", icon: BookOpen, color: "bg-purple-500", to: "/classes", roles: ["Principal", "Teacher"] },
+    { label: "Fee Payments", key: "payments", icon: Banknote, color: "bg-yellow-500", to: "/fees", roles: ["Principal", "Bursar"] },
+    { label: "Attendance Records", key: "attendance", icon: ClipboardList, color: "bg-pink-500", to: "/attendance", roles: ["Principal", "Teacher"] },
+    { label: "Result Records", key: "results", icon: FileText, color: "bg-indigo-500", to: "/results", roles: ["Principal", "Teacher"] },
   ];
 
-  const quickActions = [
-    { label: "Add Student", to: "/students" },
-    { label: "Add Teacher", to: "/teachers" },
-    { label: "Record Payment", to: "/fees" },
-    { label: "Take Attendance", to: "/attendance" },
+  const ALL_QUICK_ACTIONS = [
+    { label: "Add Student", to: "/students", roles: ["Principal", "Teacher"] },
+    { label: "Add Teacher", to: "/teachers", roles: ["Principal"] },
+    { label: "Record Payment", to: "/fees", roles: ["Principal", "Bursar"] },
+    { label: "Take Attendance", to: "/attendance", roles: ["Principal", "Teacher"] },
   ];
+
+  const statCards = ALL_STAT_CARDS.filter((c) => c.roles.includes(role));
+  const quickActions = ALL_QUICK_ACTIONS.filter((a) => a.roles.includes(role));
 
   return (
     <div>
