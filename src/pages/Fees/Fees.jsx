@@ -7,6 +7,9 @@ import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
 import ConfirmModal from "../../components/ConfirmModal";
 import TableSkeleton from "../../components/TableSkeleton";
+import { openWhatsApp, feeReminderMessage, feeClearedMessage } from "../../utils/whatsapp";
+import { MessageCircle } from "lucide-react";
+
 
 const GRADES = ["Grade 10", "Grade 11", "Grade 12"];
 const PAYMENT_METHODS = ["M-Pesa", "Bank Transfer", "Cash"];
@@ -372,6 +375,7 @@ export default function Fees() {
                         <th className="px-6 py-3 font-medium">Paid (KES)</th>
                         <th className="px-6 py-3 font-medium">Balance (KES)</th>
                         <th className="px-6 py-3 font-medium">Status</th>
+                        <th className="px-6 py-3 font-medium">Notify</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -396,16 +400,46 @@ export default function Fees() {
                               {expected ? `KES ${balance.toLocaleString()}` : "—"}
                             </td>
                             <td className="px-6 py-3">
-                              {!expected ? (
-                                <span className="text-xs text-gray-400">No structure</span>
-                              ) : balance <= 0 ? (
-                                <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full">Cleared</span>
-                              ) : paid > 0 ? (
-                                <span className="bg-yellow-100 text-yellow-700 text-xs px-2 py-1 rounded-full">Partial</span>
-                              ) : (
-                                <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full">Unpaid</span>
-                              )}
-                            </td>
+  {!expected ? (
+    <span className="text-xs text-gray-400">No structure</span>
+  ) : balance <= 0 ? (
+    <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full">Cleared</span>
+  ) : paid > 0 ? (
+    <span className="bg-yellow-100 text-yellow-700 text-xs px-2 py-1 rounded-full">Partial</span>
+  ) : (
+    <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full">Unpaid</span>
+  )}
+</td>
+<td className="px-6 py-3">
+  {student.parentPhone ? (
+    <button
+      onClick={() => {
+        const message = balance <= 0
+          ? feeClearedMessage(
+              `${student.firstName} ${student.lastName}`,
+              student.grade
+            )
+          : feeReminderMessage(
+              `${student.firstName} ${student.lastName}`,
+              balance,
+              student.grade
+            );
+        openWhatsApp(student.parentPhone, message);
+      }}
+      className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl transition font-medium ${
+        balance <= 0
+          ? "bg-green-50 text-green-600 hover:bg-green-100"
+          : "bg-green-500 hover:bg-green-600 text-white"
+      }`}
+      title={`WhatsApp ${student.parentPhone}`}
+    >
+      <MessageCircle size={13} />
+      {balance <= 0 ? "Cleared" : "Remind"}
+    </button>
+  ) : (
+    <span className="text-xs text-gray-300">No phone</span>
+  )}
+</td>
                           </tr>
                         );
                       })}
