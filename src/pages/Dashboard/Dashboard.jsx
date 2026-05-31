@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { collection, getCountFromServer, getDocs } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { Users, GraduationCap, BookOpen, Banknote, ClipboardList, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -27,82 +27,79 @@ export default function Dashboard() {
 
   useEffect(() => {
     async function fetchStats() {
-      try {
-        const [s, t, c, p, a, r, paySnap, stuSnap, structSnap] = await Promise.all([
-          getCountFromServer(collection(db, "students")),
-          getCountFromServer(collection(db, "teachers")),
-          getCountFromServer(collection(db, "classes")),
-          getCountFromServer(collection(db, "feePayments")),
-          getCountFromServer(collection(db, "attendance")),
-          getCountFromServer(collection(db, "results")),
-          getDocs(collection(db, "feePayments")),
-          getDocs(collection(db, "students")),
-          getDocs(collection(db, "feeStructures")),
-        ]);
+  try {
+    const [stuSnap, teachSnap, classSnap, paySnap, attSnap, resSnap] = await Promise.all([
+      getDocs(collection(db, "students")),
+      getDocs(collection(db, "teachers")),
+      getDocs(collection(db, "classes")),
+      getDocs(collection(db, "feePayments")),
+      getDocs(collection(db, "attendance")),
+      getDocs(collection(db, "results")),
+    ]);
 
-        setStats({
-          students: s.data().count,
-          teachers: t.data().count,
-          classes: c.data().count,
-          payments: p.data().count,
-          attendance: a.data().count,
-          results: r.data().count,
-        });
+    setStats({
+      students: stuSnap.size,
+      teachers: teachSnap.size,
+      classes: classSnap.size,
+      payments: paySnap.size,
+      attendance: attSnap.size,
+      results: resSnap.size,
+    });
 
-        // Recent payments
-        const payments = paySnap.docs
-          .map((d) => ({ id: d.id, ...d.data() }))
-          .sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds)
-          .slice(0, 5);
-        setRecentPayments(payments);
+    const payments = paySnap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds)
+      .slice(0, 5);
+    setRecentPayments(payments);
 
-        // Grade chart data
-        const students = stuSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        const gradeCounts = { "Grade 10": 0, "Grade 11": 0, "Grade 12": 0 };
-        students.forEach((s) => {
-          if (gradeCounts[s.grade] !== undefined) gradeCounts[s.grade]++;
-        });
-        setGradeChartData(
-          Object.entries(gradeCounts).map(([grade, count]) => ({ grade, count }))
-        );
+    // Grade chart data
+    const students = stuSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const gradeCounts = { "Grade 10": 0, "Grade 11": 0, "Grade 12": 0 };
+    students.forEach((s) => {
+      if (gradeCounts[s.grade] !== undefined) gradeCounts[s.grade]++;
+    });
+    setGradeChartData(
+      Object.entries(gradeCounts).map(([grade, count]) => ({ grade, count }))
+    );
 
-        // Fee status chart data
-        const structures = structSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        const currentYear = new Date().getFullYear().toString();
+    // Fee status chart
+    const structSnap = await getDocs(collection(db, "feeStructures"));
+    const structures = structSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const currentYear = new Date().getFullYear().toString();
 
-        function getExpected(grade) {
-          const s = structures.find((s) => s.grade === grade && s.year === currentYear);
-          return s ? Number(s.amount) : 0;
-        }
-
-        function getTotalPaid(studentId) {
-          return payments
-            .filter((p) => p.studentId === studentId)
-            .reduce((sum, p) => sum + Number(p.amount), 0);
-        }
-
-        let cleared = 0, partial = 0, unpaid = 0;
-        students.forEach((student) => {
-          const expected = getExpected(student.grade);
-          if (!expected) return;
-          const paid = getTotalPaid(student.id);
-          if (paid >= expected) cleared++;
-          else if (paid > 0) partial++;
-          else unpaid++;
-        });
-
-        setFeeChartData([
-          { name: "Cleared", value: cleared },
-          { name: "Partial", value: partial },
-          { name: "Unpaid", value: unpaid },
-        ]);
-
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
+    function getExpected(grade) {
+      const s = structures.find((s) => s.grade === grade && s.year === currentYear);
+      return s ? Number(s.amount) : 0;
     }
+
+    function getTotalPaid(studentId) {
+      return paySnap.docs
+        .filter((d) => d.data().studentId === studentId)
+        .reduce((sum, d) => sum + Number(d.data().amount), 0);
+    }
+
+    let cleared = 0, partial = 0, unpaid = 0;
+    students.forEach((student) => {
+      const expected = getExpected(student.grade);
+      if (!expected) return;
+      const paid = getTotalPaid(student.id);
+      if (paid >= expected) cleared++;
+      else if (paid > 0) partial++;
+      else unpaid++;
+    });
+
+    setFeeChartData([
+      { name: "Cleared", value: cleared },
+      { name: "Partial", value: partial },
+      { name: "Unpaid", value: unpaid },
+    ]);
+
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+}
     fetchStats();
   }, []);
 
