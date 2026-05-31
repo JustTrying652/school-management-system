@@ -9,6 +9,7 @@ import Fees from "./pages/Fees/Fees";
 import Attendance from "./pages/Attendance/Attendance";
 import Results from "./pages/Results/Results";
 import MainLayout from "./layouts/MainLayout";
+import Timetable from "./pages/Timetable/Timetable";
 
 function ProtectedRoute({ children }) {
   const { currentUser } = useAuth();
@@ -30,6 +31,7 @@ function App() {
       <Route path="/fees" element={<ProtectedRoute><Fees /></ProtectedRoute>} />
       <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
       <Route path="/results" element={<ProtectedRoute><Results /></ProtectedRoute>} />
+      <Route path="/timetable" element={<ProtectedRoute><Timetable /></ProtectedRoute>} />
     </Routes>
   );
 }

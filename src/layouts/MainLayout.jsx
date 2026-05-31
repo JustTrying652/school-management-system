@@ -3,7 +3,7 @@ import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
   LayoutDashboard, Users, GraduationCap, BookOpen,
-  Banknote, ClipboardList, FileText, LogOut, Menu, X,
+  Banknote, ClipboardList, FileText, CalendarDays, LogOut, Menu, X,
 } from "lucide-react";
 
 const navItems = [
@@ -14,6 +14,7 @@ const navItems = [
   { to: "/fees", icon: Banknote, label: "Fees" },
   { to: "/attendance", icon: ClipboardList, label: "Attendance" },
   { to: "/results", icon: FileText, label: "Results" },
+  { to: "/timetable", icon: CalendarDays, label: "Timetable" },
 ];
 
 export default function MainLayout({ children }) {
