@@ -10,6 +10,7 @@ import Attendance from "./pages/Attendance/Attendance";
 import Results from "./pages/Results/Results";
 import MainLayout from "./layouts/MainLayout";
 import Timetable from "./pages/Timetable/Timetable";
+import UserManagement from "./pages/UserManagement/UserManagement";
 
 function ProtectedRoute({ children }) {
   const { currentUser } = useAuth();
@@ -32,6 +33,7 @@ function App() {
       <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
       <Route path="/results" element={<ProtectedRoute><Results /></ProtectedRoute>} />
       <Route path="/timetable" element={<ProtectedRoute><Timetable /></ProtectedRoute>} />
+      <Route path="/users" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
     </Routes>
   );
 }

@@ -1,34 +1,46 @@
 import { useState } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useRole } from "../hooks/useRole";
 import {
   LayoutDashboard, Users, GraduationCap, BookOpen,
-  Banknote, ClipboardList, FileText, CalendarDays, LogOut, Menu, X,
+  Banknote, ClipboardList, FileText, CalendarDays,
+  LogOut, Menu, X, ShieldCheck,
 } from "lucide-react";
 
-const navItems = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/students", icon: Users, label: "Students" },
-  { to: "/teachers", icon: GraduationCap, label: "Teachers" },
-  { to: "/classes", icon: BookOpen, label: "Classes" },
-  { to: "/fees", icon: Banknote, label: "Fees" },
-  { to: "/attendance", icon: ClipboardList, label: "Attendance" },
-  { to: "/results", icon: FileText, label: "Results" },
-  { to: "/timetable", icon: CalendarDays, label: "Timetable" },
+const ALL_NAV_ITEMS = [
+  { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["Principal", "Teacher", "Bursar"] },
+  { to: "/students", icon: Users, label: "Students", roles: ["Principal", "Teacher"] },
+  { to: "/teachers", icon: GraduationCap, label: "Teachers", roles: ["Principal"] },
+  { to: "/classes", icon: BookOpen, label: "Classes", roles: ["Principal", "Teacher"] },
+  { to: "/fees", icon: Banknote, label: "Fees", roles: ["Principal", "Bursar"] },
+  { to: "/attendance", icon: ClipboardList, label: "Attendance", roles: ["Principal", "Teacher"] },
+  { to: "/results", icon: FileText, label: "Results", roles: ["Principal", "Teacher"] },
+  { to: "/timetable", icon: CalendarDays, label: "Timetable", roles: ["Principal", "Teacher"] },
+  { to: "/users", icon: ShieldCheck, label: "User Management", roles: ["Principal"] },
 ];
+
+const ROLE_COLORS = {
+  Principal: "bg-purple-100 text-purple-700",
+  Teacher: "bg-blue-100 text-blue-700",
+  Bursar: "bg-yellow-100 text-yellow-700",
+};
 
 export default function MainLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const { logout, currentUser } = useAuth();
+  const { logout, currentUser, userProfile } = useAuth();
+  const { role } = useRole();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Get current page label for topbar
+  const navItems = ALL_NAV_ITEMS.filter((item) =>
+    item.roles.includes(role)
+  );
+
   const currentPage = navItems.find((item) =>
     item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to)
   );
 
-  // Set browser tab title
   document.title = currentPage
     ? `${currentPage.label} — School Admin`
     : "School Admin";
@@ -75,8 +87,18 @@ export default function MainLayout({ children }) {
           ))}
         </nav>
 
-        {/* Logout */}
-        <div className="border-t border-blue-800 p-4">
+        {/* User info + Logout */}
+        <div className="border-t border-blue-800 p-4 space-y-3">
+          {sidebarOpen && userProfile && (
+            <div>
+              <p className="text-xs text-blue-200 font-medium truncate">
+                {userProfile.firstName} {userProfile.lastName}
+              </p>
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ROLE_COLORS[role] || "bg-gray-100 text-gray-600"}`}>
+                {role}
+              </span>
+            </div>
+          )}
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 text-blue-200 hover:text-white text-sm w-full transition-colors"
