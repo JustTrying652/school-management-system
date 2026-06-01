@@ -21,9 +21,10 @@ export default function Attendance() {
   const [students, setStudents] = useState([]);
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [classes, setClasses] = useState([]);
 
   // Take attendance state
-  const [selectedGrade, setSelectedGrade] = useState("");
+  const [selectedClassId, setSelectedClassId] = useState("");
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0]
   );
@@ -32,97 +33,102 @@ export default function Attendance() {
   const [alreadyTaken, setAlreadyTaken] = useState(false);
 
   // History filters
-  const [filterGrade, setFilterGrade] = useState("");
+  const [filterClassId, setFilterClassId] = useState("");
   const [filterDate, setFilterDate] = useState("");
-
-  const GRADES = ["Grade 10", "Grade 11", "Grade 12"];
 
   async function fetchData() {
     setLoading(true);
     try {
-      const [stuSnap, recSnap] = await Promise.all([
+      const [stuSnap, recSnap, classSnap] = await Promise.all([
         getDocs(collection(db, "students")),
         getDocs(collection(db, "attendance")),
+        getDocs(collection(db, "classes")),
       ]);
       setStudents(stuSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
       setRecords(recSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      setClasses(classSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
-    }
-  }
+   }
+ }
 
   useEffect(() => { fetchData(); }, []);
 
   // When grade or date changes, check if attendance already taken
   // and pre-fill the attendance map
   useEffect(() => {
-    if (!selectedGrade || !selectedDate) {
-      setAttendanceMap({});
-      setAlreadyTaken(false);
-      return;
-    }
+  if (!selectedClassId || !selectedDate) {
+    setAttendanceMap({});
+    setAlreadyTaken(false);
+    return;
+  }
 
-    const gradeStudents = students.filter((s) => s.grade === selectedGrade);
-    const existingRecords = records.filter(
-      (r) => r.grade === selectedGrade && r.date === selectedDate
-    );
+  const classStudents = students.filter((s) => s.classId === selectedClassId);
+  const existingRecords = records.filter(
+    (r) => r.classId === selectedClassId && r.date === selectedDate
+  );
 
-    if (existingRecords.length > 0) {
-      setAlreadyTaken(true);
-      const map = {};
-      existingRecords.forEach((r) => {
-        map[r.studentId] = r.status;
-      });
-      setAttendanceMap(map);
-    } else {
-      setAlreadyTaken(false);
-      const map = {};
-      gradeStudents.forEach((s) => {
-        map[s.id] = "Present";
-      });
-      setAttendanceMap(map);
-    }
-  }, [selectedGrade, selectedDate, students, records]);
+  if (existingRecords.length > 0) {
+    setAlreadyTaken(true);
+    const map = {};
+    existingRecords.forEach((r) => {
+      map[r.studentId] = r.status;
+    });
+    setAttendanceMap(map);
+  } else {
+    setAlreadyTaken(false);
+    const map = {};
+    classStudents.forEach((s) => {
+      map[s.id] = "Present";
+    });
+    setAttendanceMap(map);
+  }
+}, [selectedClassId, selectedDate, students, records]);
 
-  const gradeStudents = students.filter((s) => s.grade === selectedGrade);
+  const gradeStudents = students.filter((s) => s.classId === selectedClassId);
 
   async function handleSaveAttendance() {
-    if (!selectedGrade || !selectedDate) return;
-    if (gradeStudents.length === 0) return alert("No students in this grade.");
-    setSaving(true);
-    try {
-  await Promise.all(
-    gradeStudents.map((student) =>
-      addDoc(collection(db, "attendance"), {
-        studentId: student.id,
-        studentName: `${student.firstName} ${student.lastName}`,
-        admissionNumber: student.admissionNumber,
-        grade: selectedGrade,
-        date: selectedDate,
-        status: attendanceMap[student.id] || "Present",
-        createdAt: new Date(),
-      })
-    )
-  );
-  await fetchData();
-  setAlreadyTaken(true);
-  toast({ message: `Attendance saved for ${selectedGrade}.` });
-} catch (err) {
-  console.error(err);
-  toast({ message: "Failed to save attendance.", type: "error" });
-}
+  if (!selectedClassId || !selectedDate) return;
+  if (gradeStudents.length === 0) return alert("No students in this class.");
+  const selectedClass = classes.find((c) => c.id === selectedClassId);
+  setSaving(true);
+  try {
+    await Promise.all(
+      gradeStudents.map((student) =>
+        addDoc(collection(db, "attendance"), {
+          studentId: student.id,
+          studentName: `${student.firstName} ${student.lastName}`,
+          admissionNumber: student.admissionNumber,
+          classId: selectedClassId,
+          className: selectedClass?.name || "",
+          grade: student.grade,
+          date: selectedDate,
+          status: attendanceMap[student.id] || "Present",
+          createdAt: new Date(),
+        })
+      )
+    );
+    await fetchData();
+    setAlreadyTaken(true);
+    toast({ message: `Attendance saved for ${selectedClass?.name}.` });
+  } catch (err) {
+    console.error(err);
+    toast({ message: "Failed to save attendance.", type: "error" });
+  } finally {
+    setSaving(false);
   }
+}
 
   function handleDeleteDayAttendance() {
   setConfirmModal({
     open: true,
-    message: `This will delete all attendance records for ${selectedGrade} on ${selectedDate}.`,
+    message: `This will delete all attendance records for ${classes.find((c) => c.id === selectedClassId)?.name} on ${selectedDate}.`,
     onConfirm: async () => {
       try {
         const toDelete = records.filter(
-          (r) => r.grade === selectedGrade && r.date === selectedDate
+          (r) => r.classId === selectedClassId && r.date === selectedDate
         );
         await Promise.all(toDelete.map((r) => deleteDoc(doc(db, "attendance", r.id))));
         await fetchData();
@@ -139,15 +145,20 @@ export default function Attendance() {
   // History filtered records
   const filteredRecords = records.filter((r) => {
     return (
-      (!filterGrade || r.grade === filterGrade) &&
+      (!filterClassId || r.classId === filterClassId) &&
       (!filterDate || r.date === filterDate)
     );
   });
 
   // Group history by date + grade
   const grouped = filteredRecords.reduce((acc, r) => {
-    const key = `${r.date}__${r.grade}`;
-    if (!acc[key]) acc[key] = { date: r.date, grade: r.grade, records: [] };
+    const key = `${r.date}__${r.classId || r.grade}`;
+    if (!acc[key]) acc[key] = {
+      date: r.date,
+      grade: r.grade,
+      className: r.className || r.grade,
+      records: []
+    };
     acc[key].records.push(r);
     return acc;
   }, {});
@@ -201,13 +212,15 @@ export default function Attendance() {
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Grade</label>
                     <select
-                      value={selectedGrade}
-                      onChange={(e) => setSelectedGrade(e.target.value)}
-                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">Select grade</option>
-                      {GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
-                    </select>
+  value={selectedClassId}
+  onChange={(e) => setSelectedClassId(e.target.value)}
+  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+>
+  <option value="">Select class</option>
+  {classes.map((c) => (
+    <option key={c.id} value={c.id}>{c.name} — {c.grade}</option>
+  ))}
+</select>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Date</label>
@@ -222,7 +235,7 @@ export default function Attendance() {
               </div>
 
               {/* Attendance list */}
-              {selectedGrade && (
+              {selectedClassId && (
                 <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
                   {/* Already taken banner */}
                   {alreadyTaken && (
@@ -313,11 +326,11 @@ export default function Attendance() {
                       {!alreadyTaken && (
                         <div className="px-6 py-4 border-t flex items-center justify-between">
                           <p className="text-sm text-gray-500">
-                            {gradeStudents.length} students —{" "}
-                            {Object.values(attendanceMap).filter((v) => v === "Present").length} present,{" "}
-                            {Object.values(attendanceMap).filter((v) => v === "Absent").length} absent,{" "}
-                            {Object.values(attendanceMap).filter((v) => v === "Late").length} late
-                          </p>
+  {gradeStudents.length} students —{" "}
+  {Object.values(attendanceMap).filter((v) => v === "Present").length} present,{" "}
+  {Object.values(attendanceMap).filter((v) => v === "Absent").length} absent,{" "}
+  {Object.values(attendanceMap).filter((v) => v === "Late").length} late
+</p>
                           <button
                             onClick={handleSaveAttendance}
                             disabled={saving}
@@ -341,27 +354,29 @@ export default function Attendance() {
               {/* Filters */}
               <div className="flex flex-wrap gap-4 mb-4">
                 <select
-                  value={filterGrade}
-                  onChange={(e) => setFilterGrade(e.target.value)}
-                  className="border border-gray-300 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">All Grades</option>
-                  {GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
-                </select>
+  value={filterClassId}
+  onChange={(e) => setFilterClassId(e.target.value)}
+  className="border border-gray-300 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+>
+  <option value="">All Classes</option>
+  {classes.map((c) => (
+    <option key={c.id} value={c.id}>{c.name} — {c.grade}</option>
+  ))}
+</select>
                 <input
                   type="date"
                   value={filterDate}
                   onChange={(e) => setFilterDate(e.target.value)}
                   className="border border-gray-300 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                {(filterGrade || filterDate) && (
-                  <button
-                    onClick={() => { setFilterGrade(""); setFilterDate(""); }}
-                    className="text-sm text-gray-500 hover:text-gray-700"
-                  >
-                    Clear filters
-                  </button>
-                )}
+                {(filterClassId || filterDate) && (
+  <button
+    onClick={() => { setFilterClassId(""); setFilterDate(""); }}
+    className="text-sm text-gray-500 hover:text-gray-700"
+  >
+    Clear filters
+  </button>
+)}
               </div>
 
               {groupedList.length === 0 ? (
@@ -377,7 +392,7 @@ export default function Attendance() {
                         {/* Group header */}
                         <div className="px-6 py-4 border-b flex items-center justify-between">
                           <div>
-                            <span className="font-semibold text-gray-800">{grade}</span>
+                            <span className="font-semibold text-gray-800">{grade.className}</span>
                             <span className="text-gray-400 text-sm ml-3">{date}</span>
                           </div>
                           <div className="flex gap-3 text-xs">
