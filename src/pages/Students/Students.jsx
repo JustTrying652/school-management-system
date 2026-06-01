@@ -10,6 +10,7 @@ const emptyForm = {
   firstName: "",
   lastName: "",
   admissionNumber: "",
+  classId: "",
   grade: "",
   stream: "",
   pathway: "",
@@ -21,6 +22,7 @@ export default function Students() {
   const { toast } = useToast();
   const [confirmModal, setConfirmModal] = useState({ open: false, message: "", onConfirm: null });
   const [students, setStudents] = useState([]);
+  const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -28,12 +30,15 @@ export default function Students() {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
 
-  async function fetchStudents() {
+  async function fetchData() {
     setLoading(true);
     try {
-      const snapshot = await getDocs(collection(db, "students"));
-      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      setStudents(data);
+      const [stuSnap, classSnap] = await Promise.all([
+        getDocs(collection(db, "students")),
+        getDocs(collection(db, "classes")),
+      ]);
+      setStudents(stuSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      setClasses(classSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
     } catch (err) {
       console.error(err);
     } finally {
@@ -41,7 +46,7 @@ export default function Students() {
     }
   }
 
-  useEffect(() => { fetchStudents(); }, []);
+  useEffect(() => { fetchData(); }, []);
 
   function openAddModal() {
     setForm(emptyForm);
@@ -54,11 +59,12 @@ export default function Students() {
       firstName: student.firstName,
       lastName: student.lastName,
       admissionNumber: student.admissionNumber,
+      classId: student.classId || "",
       grade: student.grade,
-      stream: student.stream,
+      stream: student.stream || "",
       pathway: student.pathway || "",
       gender: student.gender,
-      parentPhone: student.parentPhone,
+      parentPhone: student.parentPhone || "",
     });
     setEditingId(student.id);
     setShowModal(true);
@@ -68,6 +74,17 @@ export default function Students() {
     setShowModal(false);
     setForm(emptyForm);
     setEditingId(null);
+  }
+
+  function handleClassChange(e) {
+    const selectedId = e.target.value;
+    const selectedClass = classes.find((c) => c.id === selectedId);
+    setForm({
+      ...form,
+      classId: selectedId,
+      grade: selectedClass ? selectedClass.grade : "",
+      stream: selectedClass ? selectedClass.stream : "",
+    });
   }
 
   async function handleSubmit(e) {
@@ -81,7 +98,7 @@ export default function Students() {
         await addDoc(collection(db, "students"), { ...form, createdAt: new Date() });
         toast({ message: "Student added successfully." });
       }
-      await fetchStudents();
+      await fetchData();
       closeModal();
     } catch (err) {
       console.error(err);
@@ -98,7 +115,7 @@ export default function Students() {
       onConfirm: async () => {
         try {
           await deleteDoc(doc(db, "students", id));
-          await fetchStudents();
+          await fetchData();
           toast({ message: "Student deleted.", type: "warning" });
         } catch (err) {
           toast({ message: "Failed to delete student.", type: "error" });
@@ -107,6 +124,11 @@ export default function Students() {
         }
       },
     });
+  }
+
+  function getClassName(classId) {
+    const cls = classes.find((c) => c.id === classId);
+    return cls ? cls.name : "—";
   }
 
   const filtered = students.filter((s) => {
@@ -163,9 +185,9 @@ export default function Students() {
                   <tr>
                     <th className="px-6 py-3 font-medium">Adm No.</th>
                     <th className="px-6 py-3 font-medium">Name</th>
+                    <th className="px-6 py-3 font-medium">Class</th>
                     <th className="px-6 py-3 font-medium">Grade</th>
                     <th className="px-6 py-3 font-medium">Pathway</th>
-                    <th className="px-6 py-3 font-medium">Stream</th>
                     <th className="px-6 py-3 font-medium">Gender</th>
                     <th className="px-6 py-3 font-medium">Parent Phone</th>
                     <th className="px-6 py-3 font-medium">Actions</th>
@@ -176,11 +198,11 @@ export default function Students() {
                     <tr key={student.id} className="hover:bg-gray-50 transition">
                       <td className="px-6 py-3 font-medium text-blue-600">{student.admissionNumber}</td>
                       <td className="px-6 py-3">{student.firstName} {student.lastName}</td>
+                      <td className="px-6 py-3">{getClassName(student.classId)}</td>
                       <td className="px-6 py-3">{student.grade}</td>
                       <td className="px-6 py-3">{student.pathway || "—"}</td>
-                      <td className="px-6 py-3">{student.stream || "—"}</td>
                       <td className="px-6 py-3">{student.gender}</td>
-                      <td className="px-6 py-3">{student.parentPhone}</td>
+                      <td className="px-6 py-3">{student.parentPhone || "—"}</td>
                       <td className="px-6 py-3">
                         <div className="flex items-center gap-2">
                           <button
@@ -248,6 +270,27 @@ export default function Students() {
                   onChange={(e) => setForm({ ...form, admissionNumber: e.target.value })}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Class</label>
+                <select
+                  value={form.classId}
+                  onChange={handleClassChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select class (optional)</option>
+                  {classes.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} — {c.grade}
+                    </option>
+                  ))}
+                </select>
+                {form.classId && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    Grade and stream auto-filled from class.
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">

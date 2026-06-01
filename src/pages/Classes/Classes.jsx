@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "firebase/firestore";
 import { db } from "../../services/firebase";
-import { Plus, Pencil, Trash2, X } from "lucide-react";
+import { Plus, Pencil, Trash2, X, ArrowRightLeft } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
 import ConfirmModal from "../../components/ConfirmModal";
 import TableSkeleton from "../../components/TableSkeleton";
@@ -29,8 +29,14 @@ export default function Classes() {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
 
+  // Transfer state
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [transferStudent, setTransferStudent] = useState(null);
+  const [transferClassId, setTransferClassId] = useState("");
+  const [transferring, setTransferring] = useState(false);
+
   const classStudents = selectedClass
-    ? students.filter((s) => s.grade === selectedClass.grade && s.stream === selectedClass.stream)
+    ? students.filter((s) => s.classId === selectedClass.id)
     : [];
 
   async function fetchData() {
@@ -129,6 +135,34 @@ export default function Classes() {
     });
   }
 
+  function openTransferModal(student) {
+    setTransferStudent(student);
+    setTransferClassId("");
+    setShowTransferModal(true);
+  }
+
+  async function handleTransfer(e) {
+    e.preventDefault();
+    if (!transferClassId) return;
+    setTransferring(true);
+    try {
+      const newClass = classes.find((c) => c.id === transferClassId);
+      await updateDoc(doc(db, "students", transferStudent.id), {
+        classId: transferClassId,
+        grade: newClass.grade,
+        stream: newClass.stream,
+      });
+      await fetchData();
+      // Update selected class students list
+      setShowTransferModal(false);
+      toast({ message: `${transferStudent.firstName} transferred to ${newClass.name}.` });
+    } catch (err) {
+      toast({ message: "Failed to transfer student.", type: "error" });
+    } finally {
+      setTransferring(false);
+    }
+  }
+
   const filtered = classes.filter((c) => {
     const q = search.toLowerCase();
     return (
@@ -185,43 +219,52 @@ export default function Classes() {
                     <th className="px-6 py-3 font-medium">Grade</th>
                     <th className="px-6 py-3 font-medium">Stream</th>
                     <th className="px-6 py-3 font-medium">Class Teacher</th>
+                    <th className="px-6 py-3 font-medium">Students</th>
                     <th className="px-6 py-3 font-medium">Capacity</th>
                     <th className="px-6 py-3 font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {filtered.map((cls) => (
-                    <tr key={cls.id} className="hover:bg-gray-50 transition">
-                      <td className="px-6 py-3 font-medium text-blue-600">
-                        <button
-                          onClick={() => setSelectedClass(cls)}
-                          className="hover:underline"
-                        >
-                          {cls.name}
-                        </button>
-                      </td>
-                      <td className="px-6 py-3">{cls.grade}</td>
-                      <td className="px-6 py-3">{cls.stream || "—"}</td>
-                      <td className="px-6 py-3">{cls.classTeacherName || "—"}</td>
-                      <td className="px-6 py-3">{cls.capacity || "—"}</td>
-                      <td className="px-6 py-3">
-                        <div className="flex items-center gap-2">
+                  {filtered.map((cls) => {
+                    const count = students.filter((s) => s.classId === cls.id).length;
+                    return (
+                      <tr key={cls.id} className="hover:bg-gray-50 transition">
+                        <td className="px-6 py-3 font-medium text-blue-600">
                           <button
-                            onClick={() => openEditModal(cls)}
-                            className="text-gray-400 hover:text-blue-600 transition"
+                            onClick={() => setSelectedClass(cls)}
+                            className="hover:underline"
                           >
-                            <Pencil size={15} />
+                            {cls.name}
                           </button>
-                          <button
-                            onClick={() => handleDelete(cls.id)}
-                            className="text-gray-400 hover:text-red-500 transition"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="px-6 py-3">{cls.grade}</td>
+                        <td className="px-6 py-3">{cls.stream || "—"}</td>
+                        <td className="px-6 py-3">{cls.classTeacherName || "—"}</td>
+                        <td className="px-6 py-3">
+                          <span className="bg-blue-50 text-blue-600 text-xs px-2 py-1 rounded-full font-medium">
+                            {count} student{count !== 1 ? "s" : ""}
+                          </span>
+                        </td>
+                        <td className="px-6 py-3">{cls.capacity || "—"}</td>
+                        <td className="px-6 py-3">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => openEditModal(cls)}
+                              className="text-gray-400 hover:text-blue-600 transition"
+                            >
+                              <Pencil size={15} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(cls.id)}
+                              className="text-gray-400 hover:text-red-500 transition"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -252,7 +295,6 @@ export default function Classes() {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Grade</label>
@@ -278,7 +320,6 @@ export default function Classes() {
                   />
                 </div>
               </div>
-
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Class Teacher</label>
                 <select
@@ -294,7 +335,6 @@ export default function Classes() {
                   ))}
                 </select>
               </div>
-
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Capacity</label>
                 <input
@@ -305,7 +345,6 @@ export default function Classes() {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
@@ -351,7 +390,7 @@ export default function Classes() {
               </p>
               {classStudents.length === 0 ? (
                 <p className="text-sm text-gray-400 text-center py-4">
-                  No students found for this class.
+                  No students assigned to this class yet.
                 </p>
               ) : (
                 <div className="overflow-hidden rounded-xl border border-gray-100">
@@ -360,8 +399,8 @@ export default function Classes() {
                       <tr>
                         <th className="px-4 py-2.5 font-medium">Adm No.</th>
                         <th className="px-4 py-2.5 font-medium">Name</th>
-                        <th className="px-4 py-2.5 font-medium">Gender</th>
                         <th className="px-4 py-2.5 font-medium">Pathway</th>
+                        <th className="px-4 py-2.5 font-medium">Transfer</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -369,8 +408,16 @@ export default function Classes() {
                         <tr key={s.id} className="hover:bg-gray-50">
                           <td className="px-4 py-2.5 text-blue-600 font-medium">{s.admissionNumber}</td>
                           <td className="px-4 py-2.5">{s.firstName} {s.lastName}</td>
-                          <td className="px-4 py-2.5">{s.gender}</td>
                           <td className="px-4 py-2.5">{s.pathway || "—"}</td>
+                          <td className="px-4 py-2.5">
+                            <button
+                              onClick={() => openTransferModal(s)}
+                              className="flex items-center gap-1 text-xs text-gray-400 hover:text-blue-600 transition"
+                            >
+                              <ArrowRightLeft size={13} />
+                              Transfer
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -378,6 +425,62 @@ export default function Classes() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Transfer Modal */}
+      {showTransferModal && transferStudent && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+              <h2 className="font-semibold text-gray-800">Transfer Student</h2>
+              <button
+                onClick={() => setShowTransferModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleTransfer} className="p-6 space-y-4">
+              <div className="bg-blue-50 rounded-lg px-4 py-2 text-sm text-blue-700">
+                Moving: <span className="font-medium">{transferStudent.firstName} {transferStudent.lastName}</span>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Transfer to Class</label>
+                <select
+                  required
+                  value={transferClassId}
+                  onChange={(e) => setTransferClassId(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select new class</option>
+                  {classes
+                    .filter((c) => c.id !== selectedClass?.id)
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} — {c.grade}
+                      </option>
+                    ))}
+                </select>
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowTransferModal(false)}
+                  className="px-4 py-2 text-sm text-gray-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={transferring || !transferClassId}
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition disabled:opacity-50"
+                >
+                  {transferring ? "Transferring..." : "Transfer"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

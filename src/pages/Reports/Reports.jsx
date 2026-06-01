@@ -86,11 +86,7 @@ export default function Reports() {
 
   // Get students in selected class
   function getClassStudents(classId) {
-    const cls = classes.find((c) => c.id === classId);
-    if (!cls) return [];
-    return students.filter(
-      (s) => s.grade === cls.grade && s.stream === cls.stream
-    );
+    return students.filter((s) => s.classId === classId);
   }
 
   // ── Export: Class List ──────────────────────────────────
