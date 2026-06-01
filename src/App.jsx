@@ -12,6 +12,8 @@ import Results from "./pages/Results/Results";
 import Timetable from "./pages/Timetable/Timetable";
 import UserManagement from "./pages/UserManagement/UserManagement";
 import MainLayout from "./layouts/MainLayout";
+import ParentPortal from "./pages/ParentPortal/ParentPortal";
+import ParentDashboard from "./pages/ParentPortal/ParentDashboard";
 
 function ProtectedRoute({ children }) {
   const { currentUser } = useAuth();
@@ -33,6 +35,8 @@ function RoleRoute({ children, roles }) {
 function App() {
   return (
     <Routes>
+      <Route path="/parent" element={<ParentPortal />} />
+      <Route path="/parent/dashboard" element={<ParentDashboard />} />
       <Route path="/login" element={<Login />} />
       <Route path="/" element={
         <ProtectedRoute><Dashboard /></ProtectedRoute>

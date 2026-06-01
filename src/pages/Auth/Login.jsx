@@ -82,7 +82,14 @@ export default function Login() {
             {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
-
+        <div className="text-center mt-6">
+          <a
+            href="/parent"
+            className="text-sm text-blue-600 hover:text-blue-700 transition"
+          >
+            Parent portal →
+          </a>
+        </div>
       </div>
     </div>
   );
