@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../services/firebase";
-import { LogOut, GraduationCap, Banknote } from "lucide-react";
+import { LogOut, GraduationCap, Banknote, ClipboardList } from "lucide-react";
 
 const EXAMS = ["Mid Term 1", "End Term 1", "Mid Term 2", "End Term 2", "Mid Term 3", "End Term 3"];
 
@@ -27,6 +27,7 @@ export default function ParentDashboard() {
   const [results, setResults] = useState([]);
   const [payments, setPayments] = useState([]);
   const [structures, setStructures] = useState([]);
+  const [attendance, setAttendance] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("results");
   const [filterExam, setFilterExam] = useState("");
@@ -48,10 +49,11 @@ export default function ParentDashboard() {
   async function fetchData() {
     setLoading(true);
     try {
-      const [resSnap, paySnap, structSnap] = await Promise.all([
+      const [resSnap, paySnap, structSnap, attSnap] = await Promise.all([
         getDocs(collection(db, "results")),
         getDocs(collection(db, "feePayments")),
         getDocs(collection(db, "feeStructures")),
+        getDocs(collection(db, "attendance")),
       ]);
 
       setResults(
@@ -66,6 +68,12 @@ export default function ParentDashboard() {
           .sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds)
       );
       setStructures(structSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      setAttendance(
+        attSnap.docs
+          .map((d) => ({ id: d.id, ...d.data() }))
+          .filter((a) => a.studentId === student.id)
+          .sort((a, b) => b.date.localeCompare(a.date))
+      );
     } catch (err) {
       console.error(err);
     } finally {
@@ -86,6 +94,14 @@ export default function ParentDashboard() {
   const expectedFee = feeStructure ? Number(feeStructure.amount) : 0;
   const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0);
   const balance = expectedFee - totalPaid;
+
+  // Attendance summary
+  const presentCount = attendance.filter((a) => a.status === "Present").length;
+  const absentCount = attendance.filter((a) => a.status === "Absent").length;
+  const lateCount = attendance.filter((a) => a.status === "Late").length;
+  const attendanceRate = attendance.length
+    ? Math.round((presentCount / attendance.length) * 100)
+    : null;
 
   // Filtered results
   const filteredResults = results.filter(
@@ -127,24 +143,35 @@ export default function ParentDashboard() {
       <main className="max-w-3xl mx-auto p-6 space-y-6">
 
         {/* Summary cards */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white rounded-2xl shadow-sm p-5 flex items-center gap-4">
+        <div className="grid grid-cols-3 gap-4">
+          <div className="bg-white rounded-2xl shadow-sm p-5 flex items-center gap-3">
             <div className="bg-indigo-500 text-white rounded-xl p-3">
-              <GraduationCap size={20} />
+              <GraduationCap size={18} />
             </div>
             <div>
-              <p className="text-xs text-gray-500">Result Records</p>
-              <p className="text-2xl font-bold text-gray-800">{results.length}</p>
+              <p className="text-xs text-gray-500">Results</p>
+              <p className="text-xl font-bold text-gray-800">{results.length}</p>
             </div>
           </div>
-          <div className={`bg-white rounded-2xl shadow-sm p-5 flex items-center gap-4`}>
+          <div className="bg-white rounded-2xl shadow-sm p-5 flex items-center gap-3">
             <div className={`${balance <= 0 ? "bg-green-500" : "bg-red-400"} text-white rounded-xl p-3`}>
-              <Banknote size={20} />
+              <Banknote size={18} />
             </div>
             <div>
               <p className="text-xs text-gray-500">Fee Balance</p>
-              <p className={`text-2xl font-bold ${balance <= 0 ? "text-green-600" : "text-red-500"}`}>
+              <p className={`text-xl font-bold ${balance <= 0 ? "text-green-600" : "text-red-500"}`}>
                 {expectedFee ? `KES ${balance.toLocaleString()}` : "—"}
+              </p>
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl shadow-sm p-5 flex items-center gap-3">
+            <div className={`${attendanceRate !== null && attendanceRate >= 80 ? "bg-green-500" : "bg-orange-400"} text-white rounded-xl p-3`}>
+              <ClipboardList size={18} />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Attendance</p>
+              <p className={`text-xl font-bold ${attendanceRate !== null && attendanceRate >= 80 ? "text-green-600" : "text-orange-500"}`}>
+                {attendanceRate !== null ? `${attendanceRate}%` : "—"}
               </p>
             </div>
           </div>
@@ -152,7 +179,7 @@ export default function ParentDashboard() {
 
         {/* Tabs */}
         <div className="flex gap-1 bg-gray-200 rounded-xl p-1 w-fit">
-          {["results", "fees"].map((tab) => (
+          {["results", "attendance", "fees"].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -162,7 +189,7 @@ export default function ParentDashboard() {
                   : "text-gray-500 hover:text-gray-700"
               }`}
             >
-              {tab === "results" ? "Results" : "Fee Statement"}
+              {tab === "fees" ? "Fee Statement" : tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
         </div>
@@ -189,9 +216,7 @@ export default function ParentDashboard() {
                 </div>
 
                 {filteredResults.length === 0 ? (
-                  <div className="p-8 text-center text-gray-400 text-sm">
-                    No results found.
-                  </div>
+                  <div className="p-8 text-center text-gray-400 text-sm">No results found.</div>
                 ) : (
                   <>
                     <div className="overflow-x-auto">
@@ -219,12 +244,9 @@ export default function ParentDashboard() {
                         </tbody>
                       </table>
                     </div>
-
                     {average !== null && (
                       <div className="px-6 py-4 border-t bg-gray-50 flex items-center justify-between">
-                        <p className="text-sm text-gray-500">
-                          {filteredResults.length} subjects
-                        </p>
+                        <p className="text-sm text-gray-500">{filteredResults.length} subjects</p>
                         <div className="text-right">
                           <span className="text-xs text-gray-500">Average: </span>
                           <span className={`font-bold ${getGrade(average).color}`}>
@@ -238,11 +260,102 @@ export default function ParentDashboard() {
               </div>
             )}
 
+            {/* Attendance tab */}
+            {activeTab === "attendance" && (
+              <div className="space-y-4">
+
+                {/* Attendance summary */}
+                <div className="bg-white rounded-2xl shadow-sm p-6">
+                  <h2 className="font-semibold text-gray-800 mb-4">Attendance Summary</h2>
+                  {attendance.length === 0 ? (
+                    <p className="text-sm text-gray-400">No attendance records found.</p>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-3 gap-4 mb-4">
+                        <div className="bg-green-50 rounded-xl p-4 text-center">
+                          <p className="text-2xl font-bold text-green-600">{presentCount}</p>
+                          <p className="text-xs text-gray-500 mt-1">Present</p>
+                        </div>
+                        <div className="bg-red-50 rounded-xl p-4 text-center">
+                          <p className="text-2xl font-bold text-red-500">{absentCount}</p>
+                          <p className="text-xs text-gray-500 mt-1">Absent</p>
+                        </div>
+                        <div className="bg-yellow-50 rounded-xl p-4 text-center">
+                          <p className="text-2xl font-bold text-yellow-500">{lateCount}</p>
+                          <p className="text-xs text-gray-500 mt-1">Late</p>
+                        </div>
+                      </div>
+
+                      {/* Attendance rate bar */}
+                      <div>
+                        <div className="flex justify-between text-xs text-gray-400 mb-1">
+                          <span>Attendance rate</span>
+                          <span>{attendanceRate}%</span>
+                        </div>
+                        <div className="w-full bg-gray-100 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full transition-all ${
+                              attendanceRate >= 80 ? "bg-green-500" : "bg-orange-400"
+                            }`}
+                            style={{ width: `${attendanceRate}%` }}
+                          />
+                        </div>
+                        {attendanceRate < 80 && (
+                          <p className="text-xs text-orange-500 mt-2">
+                            Attendance is below the recommended 80% threshold.
+                          </p>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Attendance records */}
+                <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                  <div className="px-6 py-4 border-b">
+                    <h2 className="font-semibold text-gray-800">Attendance Records</h2>
+                  </div>
+                  {attendance.length === 0 ? (
+                    <div className="p-8 text-center text-gray-400 text-sm">
+                      No attendance records found.
+                    </div>
+                  ) : (
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 text-gray-600 text-left">
+                        <tr>
+                          <th className="px-6 py-3 font-medium">Date</th>
+                          <th className="px-6 py-3 font-medium">Class</th>
+                          <th className="px-6 py-3 font-medium">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {attendance.map((a) => (
+                          <tr key={a.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-3">{a.date}</td>
+                            <td className="px-6 py-3 text-gray-500">{a.className || a.grade}</td>
+                            <td className="px-6 py-3">
+                              <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                a.status === "Present"
+                                  ? "bg-green-100 text-green-700"
+                                  : a.status === "Absent"
+                                  ? "bg-red-100 text-red-600"
+                                  : "bg-yellow-100 text-yellow-700"
+                              }`}>
+                                {a.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Fees tab */}
             {activeTab === "fees" && (
               <div className="space-y-4">
-
-                {/* Fee summary */}
                 <div className="bg-white rounded-2xl shadow-sm p-6">
                   <h2 className="font-semibold text-gray-800 mb-4">Fee Summary ({currentYear})</h2>
                   {!expectedFee ? (
@@ -263,8 +376,6 @@ export default function ParentDashboard() {
                           {balance <= 0 ? "Cleared ✓" : `KES ${balance.toLocaleString()} owing`}
                         </span>
                       </div>
-
-                      {/* Progress bar */}
                       <div className="mt-2">
                         <div className="flex justify-between text-xs text-gray-400 mb-1">
                           <span>Payment progress</span>
@@ -281,15 +392,12 @@ export default function ParentDashboard() {
                   )}
                 </div>
 
-                {/* Payment history */}
                 <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
                   <div className="px-6 py-4 border-b">
                     <h2 className="font-semibold text-gray-800">Payment History</h2>
                   </div>
                   {payments.length === 0 ? (
-                    <div className="p-8 text-center text-gray-400 text-sm">
-                      No payments recorded yet.
-                    </div>
+                    <div className="p-8 text-center text-gray-400 text-sm">No payments recorded yet.</div>
                   ) : (
                     <table className="w-full text-sm">
                       <thead className="bg-gray-50 text-gray-600 text-left">
