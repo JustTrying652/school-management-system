@@ -132,6 +132,7 @@ export default function Students() {
   }
 
   const filtered = students.filter((s) => {
+    if (s.status === "Graduated") return false;
     const q = search.toLowerCase();
     return (
       s.firstName?.toLowerCase().includes(q) ||

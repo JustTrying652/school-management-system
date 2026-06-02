@@ -15,6 +15,7 @@ import MainLayout from "./layouts/MainLayout";
 import ParentPortal from "./pages/ParentPortal/ParentPortal";
 import ParentDashboard from "./pages/ParentPortal/ParentDashboard";
 import Reports from "./pages/Reports/Reports";
+import Promotion from "./pages/Promotion/Promotion";
 
 function ProtectedRoute({ children }) {
   const { currentUser } = useAuth();
@@ -39,6 +40,9 @@ function App() {
       <Route path="/parent" element={<ParentPortal />} />
       <Route path="/parent/dashboard" element={<ParentDashboard />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/promotion" element={
+        <RoleRoute roles={["Principal"]}><Promotion /></RoleRoute>
+      } />
       <Route path="/reports" element={
         <RoleRoute roles={["Principal", "Teacher", "Bursar"]}><Reports /></RoleRoute>
       } />
