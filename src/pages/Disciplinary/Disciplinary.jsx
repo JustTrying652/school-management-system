@@ -348,11 +348,7 @@ export default function Disciplinary() {
                                 <p className="text-xs text-gray-400 mt-0.5 max-w-xs truncate">{r.actionDetails}</p>
                               )}
                             </td>
-                            <td className="px-6 py-3 text-gray-500">{r.recordedBy}
-                              recordedBy: userProfile
-                                ? `${userProfile.firstName} ${userProfile.lastName}`
-                                : "Admin",
-                            </td>
+                            <td className="px-6 py-3 text-gray-500">{r.recordedBy}</td>
                             <td className="px-6 py-3">
                               <button
                                 onClick={() => handleDelete(r.id)}
