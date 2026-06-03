@@ -5,28 +5,30 @@ import { useRole } from "../hooks/useRole";
 import {
   LayoutDashboard, Users, GraduationCap, BookOpen,
   Banknote, ClipboardList, FileText, CalendarDays,
-  LogOut, Menu, X, ShieldCheck, BarChart2, TrendingUp, ShieldAlert
+  LogOut, Menu, X, ShieldCheck, BarChart2, TrendingUp, ShieldAlert, LibraryBig
 } from "lucide-react";
 
 const ALL_NAV_ITEMS = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["Principal", "Teacher", "Bursar"] },
-  { to: "/students", icon: Users, label: "Students", roles: ["Principal", "Teacher"] },
+  { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["Principal", "Teacher", "Bursar", "Librarian"] },
+  { to: "/students", icon: Users, label: "Students", roles: ["Principal", "Teacher", "Librarian"] },
   { to: "/teachers", icon: GraduationCap, label: "Teachers", roles: ["Principal"] },
   { to: "/classes", icon: BookOpen, label: "Classes", roles: ["Principal", "Teacher"] },
   { to: "/fees", icon: Banknote, label: "Fees", roles: ["Principal", "Bursar"] },
   { to: "/attendance", icon: ClipboardList, label: "Attendance", roles: ["Principal", "Teacher"] },
   { to: "/results", icon: FileText, label: "Results", roles: ["Principal", "Teacher"] },
   { to: "/timetable", icon: CalendarDays, label: "Timetable", roles: ["Principal", "Teacher"] },
-  { to: "/users", icon: ShieldCheck, label: "User Management", roles: ["Principal"] },
-  { to: "/reports", icon: BarChart2, label: "Reports", roles: ["Principal", "Teacher", "Bursar"] },
-  { to: "/promotion", icon: TrendingUp, label: "Promotion", roles: ["Principal"] },
+  { to: "/library", icon: LibraryBig, label: "Library", roles: ["Principal", "Librarian", "Teacher"] },
   { to: "/disciplinary", icon: ShieldAlert, label: "Disciplinary", roles: ["Principal", "Teacher"] },
+  { to: "/promotion", icon: TrendingUp, label: "Promotion", roles: ["Principal"] },
+  { to: "/reports", icon: BarChart2, label: "Reports", roles: ["Principal", "Teacher", "Bursar"] },
+  { to: "/users", icon: ShieldCheck, label: "User Management", roles: ["Principal"] },
 ];
 
 const ROLE_COLORS = {
   Principal: "bg-purple-100 text-purple-700",
   Teacher: "bg-blue-100 text-blue-700",
   Bursar: "bg-yellow-100 text-yellow-700",
+  Librarian: "bg-green-100 text-green-700",
 };
 
 export default function MainLayout({ children }) {

@@ -9,12 +9,13 @@ import { UserPlus, Trash2, Pencil, X } from "lucide-react";
 import ConfirmModal from "../../components/ConfirmModal";
 import TableSkeleton from "../../components/TableSkeleton";
 
-const ROLES = ["Principal", "Teacher", "Bursar"];
+const ROLES = ["Principal", "Teacher", "Bursar", "Librarian"];
 
 const ROLE_COLORS = {
   Principal: "bg-purple-100 text-purple-700",
   Teacher: "bg-blue-100 text-blue-700",
   Bursar: "bg-yellow-100 text-yellow-700",
+  Librarian: "bg-green-100 text-green-700",
 };
 
 const emptyForm = {

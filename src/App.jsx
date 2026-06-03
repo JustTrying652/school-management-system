@@ -17,6 +17,7 @@ import ParentDashboard from "./pages/ParentPortal/ParentDashboard";
 import Reports from "./pages/Reports/Reports";
 import Promotion from "./pages/Promotion/Promotion";
 import Disciplinary from "./pages/Disciplinary/Disciplinary";
+import Library from "./pages/Library/Library";
 
 function ProtectedRoute({ children }) {
   const { currentUser } = useAuth();
@@ -41,6 +42,9 @@ function App() {
       <Route path="/parent" element={<ParentPortal />} />
       <Route path="/parent/dashboard" element={<ParentDashboard />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/library" element={
+        <RoleRoute roles={["Principal", "Librarian", "Teacher"]}><Library /></RoleRoute>
+      } />
       <Route path="/disciplinary" element={
         <RoleRoute roles={["Principal", "Teacher"]}><Disciplinary /></RoleRoute>
       } />
