@@ -5,7 +5,7 @@ import { useRole } from "../hooks/useRole";
 import {
   LayoutDashboard, Users, GraduationCap, BookOpen,
   Banknote, ClipboardList, FileText, CalendarDays,
-  LogOut, Menu, X, ShieldCheck, BarChart2, TrendingUp
+  LogOut, Menu, X, ShieldCheck, BarChart2, TrendingUp, ShieldAlert
 } from "lucide-react";
 
 const ALL_NAV_ITEMS = [
@@ -20,6 +20,7 @@ const ALL_NAV_ITEMS = [
   { to: "/users", icon: ShieldCheck, label: "User Management", roles: ["Principal"] },
   { to: "/reports", icon: BarChart2, label: "Reports", roles: ["Principal", "Teacher", "Bursar"] },
   { to: "/promotion", icon: TrendingUp, label: "Promotion", roles: ["Principal"] },
+  { to: "/disciplinary", icon: ShieldAlert, label: "Disciplinary", roles: ["Principal", "Teacher"] },
 ];
 
 const ROLE_COLORS = {
