@@ -15,7 +15,13 @@ export default function Promotion() {
   const [loading, setLoading] = useState(true);
   const [selectedClassId, setSelectedClassId] = useState("");
   const [promoting, setPromoting] = useState(false);
-  const [confirmModal, setConfirmModal] = useState({ open: false, message: "",confirmLabel: "Confirm", confirmColor: "bg-blue-600 hover:bg-blue-700", onConfirm: null });
+  const [confirmModal, setConfirmModal] = useState({
+    open: false,
+    message: "",
+    confirmLabel: "Confirm",
+    confirmColor: "bg-blue-600 hover:bg-blue-700",
+    onConfirm: null,
+  });
   const [promotionLog, setPromotionLog] = useState([]);
   const [selectedLog, setSelectedLog] = useState(null);
 
@@ -56,7 +62,6 @@ export default function Promotion() {
     if (!currentClass) return null;
     const nextGrade = getNextGrade(currentClass.grade);
     if (!nextGrade) return null;
-    // Try to find a class with same stream in next grade
     return classes.find(
       (c) => c.grade === nextGrade && c.stream === currentClass.stream
     ) || null;
@@ -85,7 +90,6 @@ export default function Promotion() {
         setPromoting(true);
         try {
           if (isGrade12) {
-            // Graduate — mark students as graduated
             await Promise.all(
               classStudents.map((student) =>
                 updateDoc(doc(db, "students", student.id), {
@@ -97,7 +101,6 @@ export default function Promotion() {
               )
             );
           } else {
-            // Promote to next grade
             await Promise.all(
               classStudents.map((student) =>
                 updateDoc(doc(db, "students", student.id), {
@@ -109,7 +112,6 @@ export default function Promotion() {
             );
           }
 
-          // Log the promotion
           await addDoc(collection(db, "promotionLog"), {
             fromClass: selectedClass.name,
             fromGrade: selectedClass.grade,
@@ -137,7 +139,7 @@ export default function Promotion() {
           toast({ message: "Failed to promote students.", type: "error" });
         } finally {
           setPromoting(false);
-          setConfirmModal({ open: false, message: "", onConfirm: null });
+          setConfirmModal({ open: false, message: "", confirmLabel: "Confirm", confirmColor: "bg-blue-600 hover:bg-blue-700", onConfirm: null });
         }
       },
     });
@@ -158,7 +160,6 @@ export default function Promotion() {
           {/* Promotion card */}
           <div className="bg-white rounded-2xl shadow-sm p-6">
             <h2 className="font-semibold text-gray-800 mb-4">Promote a Class</h2>
-
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Select Class to Promote</label>
@@ -176,10 +177,8 @@ export default function Promotion() {
                 </select>
               </div>
 
-              {/* Preview */}
               {selectedClass && (
                 <div className="space-y-4">
-                  {/* Info banner */}
                   <div className={`rounded-xl p-4 flex items-start gap-3 ${
                     isGrade12
                       ? "bg-purple-50 border border-purple-100"
@@ -189,9 +188,7 @@ export default function Promotion() {
                     <div>
                       {isGrade12 ? (
                         <>
-                          <p className="text-sm font-medium text-purple-700">
-                            Grade 12 — Graduation
-                          </p>
+                          <p className="text-sm font-medium text-purple-700">Grade 12 — Graduation</p>
                           <p className="text-xs text-purple-600 mt-0.5">
                             These students will be marked as graduated and removed from active class lists.
                           </p>
@@ -212,7 +209,6 @@ export default function Promotion() {
                     </div>
                   </div>
 
-                  {/* Warning if no next class */}
                   {!isGrade12 && !nextClass && (
                     <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-4 flex items-start gap-3">
                       <AlertTriangle size={18} className="text-yellow-500 shrink-0 mt-0.5" />
@@ -222,7 +218,6 @@ export default function Promotion() {
                     </div>
                   )}
 
-                  {/* Student list preview */}
                   <div>
                     <p className="text-xs font-medium text-gray-500 mb-2">
                       {classStudents.length} student{classStudents.length !== 1 ? "s" : ""} will be affected
@@ -261,7 +256,6 @@ export default function Promotion() {
                     )}
                   </div>
 
-                  {/* Promote button */}
                   {classStudents.length > 0 && (
                     <button
                       onClick={handlePromote}
@@ -307,101 +301,103 @@ export default function Promotion() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {promotionLog.map((log) => (
-                   <tr key={log.id} className="hover:bg-gray-50">
+                    <tr key={log.id} className="hover:bg-gray-50">
                       <td className="px-6 py-3 font-medium">
-                       <button
-                         onClick={() => setSelectedLog(log)}
-                         className="text-blue-600 hover:underline"
-                       >
-                         {log.fromClass}
+                        <button
+                          onClick={() => setSelectedLog(log)}
+                          className="text-blue-600 hover:underline"
+                        >
+                          {log.fromClass}
                         </button>
-                     </td>
-                     <td className="px-6 py-3">
-                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                         log.toGrade === "Graduated"
-                          ? "bg-purple-100 text-purple-700"
-                          : "bg-green-100 text-green-700"
-                         }`}>
+                      </td>
+                      <td className="px-6 py-3">
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                          log.toGrade === "Graduated"
+                            ? "bg-purple-100 text-purple-700"
+                            : "bg-green-100 text-green-700"
+                        }`}>
                           {log.toClass}
                         </span>
-      </td>
-      <td className="px-6 py-3">{log.studentCount} students</td>
-      <td className="px-6 py-3 text-gray-500">
-        {log.createdAt?.seconds
-          ? new Date(log.createdAt.seconds * 1000).toLocaleDateString("en-KE", {
-              year: "numeric", month: "short", day: "numeric"
-            })
-          : "—"}
-      </td>
-    </tr>
-  ))}
-</tbody>
-{selectedLog && (
-  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-    <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
-      <div className="flex items-center justify-between px-6 py-4 border-b">
-        <div>
-          <h2 className="font-semibold text-gray-800">{selectedLog.fromClass}</h2>
-          <p className="text-xs text-gray-500 mt-0.5">
-            {selectedLog.toGrade === "Graduated" ? "Graduated" : `Promoted to ${selectedLog.toGrade}`} ·{" "}
-            {selectedLog.createdAt?.seconds
-              ? new Date(selectedLog.createdAt.seconds * 1000).toLocaleDateString("en-KE", {
-                  year: "numeric", month: "short", day: "numeric"
-                })
-              : "—"}
-          </p>
-        </div>
-        <button
-          onClick={() => setSelectedLog(null)}
-          className="text-gray-400 hover:text-gray-600"
-        >
-          <X size={18} />
-        </button>
-      </div>
-      <div className="p-6">
-        <p className="text-xs font-medium text-gray-500 mb-3">
-          {selectedLog.students?.length || 0} student{selectedLog.students?.length !== 1 ? "s" : ""}
-        </p>
-        {!selectedLog.students || selectedLog.students.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-4">No student details recorded.</p>
-        ) : (
-          <div className="overflow-hidden rounded-xl border border-gray-100">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-600 text-left">
-                <tr>
-                  <th className="px-4 py-2.5 font-medium">#</th>
-                  <th className="px-4 py-2.5 font-medium">Adm No.</th>
-                  <th className="px-4 py-2.5 font-medium">Name</th>
-                  <th className="px-4 py-2.5 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {selectedLog.students.map((s, i) => (
-                  <tr key={s.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-2.5 text-gray-400">{i + 1}</td>
-                    <td className="px-4 py-2.5 text-blue-600 font-medium">{s.admissionNumber}</td>
-                    <td className="px-4 py-2.5">{s.name}</td>
-                    <td className="px-4 py-2.5">
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        selectedLog.toGrade === "Graduated"
-                          ? "bg-purple-100 text-purple-700"
-                          : "bg-green-100 text-green-700"
-                      }`}>
-                        {selectedLog.toGrade === "Graduated" ? "Graduated" : `→ ${selectedLog.toGrade}`}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
-  </div>
-)}
+                      </td>
+                      <td className="px-6 py-3">{log.studentCount} students</td>
+                      <td className="px-6 py-3 text-gray-500">
+                        {log.createdAt?.seconds
+                          ? new Date(log.createdAt.seconds * 1000).toLocaleDateString("en-KE", {
+                              year: "numeric", month: "short", day: "numeric"
+                            })
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
               </table>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Log detail modal */}
+      {selectedLog && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+              <div>
+                <h2 className="font-semibold text-gray-800">{selectedLog.fromClass}</h2>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {selectedLog.toGrade === "Graduated" ? "Graduated" : `Promoted to ${selectedLog.toGrade}`} ·{" "}
+                  {selectedLog.createdAt?.seconds
+                    ? new Date(selectedLog.createdAt.seconds * 1000).toLocaleDateString("en-KE", {
+                        year: "numeric", month: "short", day: "numeric"
+                      })
+                    : "—"}
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedLog(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-6">
+              <p className="text-xs font-medium text-gray-500 mb-3">
+                {selectedLog.students?.length || 0} student{selectedLog.students?.length !== 1 ? "s" : ""}
+              </p>
+              {!selectedLog.students || selectedLog.students.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-4">No student details recorded.</p>
+              ) : (
+                <div className="overflow-hidden rounded-xl border border-gray-100 max-h-96 overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 text-gray-600 text-left sticky top-0">
+                      <tr>
+                        <th className="px-4 py-2.5 font-medium">#</th>
+                        <th className="px-4 py-2.5 font-medium">Adm No.</th>
+                        <th className="px-4 py-2.5 font-medium">Name</th>
+                        <th className="px-4 py-2.5 font-medium">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {selectedLog.students.map((s, i) => (
+                        <tr key={s.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-2.5 text-gray-400">{i + 1}</td>
+                          <td className="px-4 py-2.5 text-blue-600 font-medium">{s.admissionNumber}</td>
+                          <td className="px-4 py-2.5">{s.name}</td>
+                          <td className="px-4 py-2.5">
+                            <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                              selectedLog.toGrade === "Graduated"
+                                ? "bg-purple-100 text-purple-700"
+                                : "bg-green-100 text-green-700"
+                            }`}>
+                              {selectedLog.toGrade === "Graduated" ? "Graduated" : `→ ${selectedLog.toGrade}`}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -410,7 +406,7 @@ export default function Promotion() {
         <ConfirmModal
           message={confirmModal.message}
           onConfirm={confirmModal.onConfirm}
-          onCancel={() => setConfirmModal({ open: false, message: "", onConfirm: null })}
+          onCancel={() => setConfirmModal({ open: false, message: "", confirmLabel: "Confirm", confirmColor: "bg-blue-600 hover:bg-blue-700", onConfirm: null })}
           confirmLabel={confirmModal.confirmLabel || "Confirm"}
           confirmColor={confirmModal.confirmColor || "bg-blue-600 hover:bg-blue-700"}
         />
