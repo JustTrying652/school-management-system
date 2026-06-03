@@ -4,7 +4,7 @@ import { db } from "../../services/firebase";
 import { useToast } from "../../context/ToastContext";
 import ConfirmModal from "../../components/ConfirmModal";
 import TableSkeleton from "../../components/TableSkeleton";
-import { TrendingUp, AlertTriangle } from "lucide-react";
+import { TrendingUp, AlertTriangle, X } from "lucide-react";
 
 const GRADE_ORDER = ["Grade 10", "Grade 11", "Grade 12"];
 
@@ -17,6 +17,7 @@ export default function Promotion() {
   const [promoting, setPromoting] = useState(false);
   const [confirmModal, setConfirmModal] = useState({ open: false, message: "",confirmLabel: "Confirm", confirmColor: "bg-blue-600 hover:bg-blue-700", onConfirm: null });
   const [promotionLog, setPromotionLog] = useState([]);
+  const [selectedLog, setSelectedLog] = useState(null);
 
   async function fetchData() {
     setLoading(true);
@@ -306,28 +307,99 @@ export default function Promotion() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {promotionLog.map((log) => (
-                    <tr key={log.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-3 font-medium">{log.fromClass}</td>
-                      <td className="px-6 py-3">
-                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                          log.toGrade === "Graduated"
-                            ? "bg-purple-100 text-purple-700"
-                            : "bg-green-100 text-green-700"
-                        }`}>
+                   <tr key={log.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-3 font-medium">
+                       <button
+                         onClick={() => setSelectedLog(log)}
+                         className="text-blue-600 hover:underline"
+                       >
+                         {log.fromClass}
+                        </button>
+                     </td>
+                     <td className="px-6 py-3">
+                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                         log.toGrade === "Graduated"
+                          ? "bg-purple-100 text-purple-700"
+                          : "bg-green-100 text-green-700"
+                         }`}>
                           {log.toClass}
                         </span>
-                      </td>
-                      <td className="px-6 py-3">{log.studentCount} students</td>
-                      <td className="px-6 py-3 text-gray-500">
-                        {log.createdAt?.seconds
-                          ? new Date(log.createdAt.seconds * 1000).toLocaleDateString("en-KE", {
-                              year: "numeric", month: "short", day: "numeric"
-                            })
-                          : "—"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
+      </td>
+      <td className="px-6 py-3">{log.studentCount} students</td>
+      <td className="px-6 py-3 text-gray-500">
+        {log.createdAt?.seconds
+          ? new Date(log.createdAt.seconds * 1000).toLocaleDateString("en-KE", {
+              year: "numeric", month: "short", day: "numeric"
+            })
+          : "—"}
+      </td>
+    </tr>
+  ))}
+</tbody>
+{selectedLog && (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
+      <div className="flex items-center justify-between px-6 py-4 border-b">
+        <div>
+          <h2 className="font-semibold text-gray-800">{selectedLog.fromClass}</h2>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {selectedLog.toGrade === "Graduated" ? "Graduated" : `Promoted to ${selectedLog.toGrade}`} ·{" "}
+            {selectedLog.createdAt?.seconds
+              ? new Date(selectedLog.createdAt.seconds * 1000).toLocaleDateString("en-KE", {
+                  year: "numeric", month: "short", day: "numeric"
+                })
+              : "—"}
+          </p>
+        </div>
+        <button
+          onClick={() => setSelectedLog(null)}
+          className="text-gray-400 hover:text-gray-600"
+        >
+          <X size={18} />
+        </button>
+      </div>
+      <div className="p-6">
+        <p className="text-xs font-medium text-gray-500 mb-3">
+          {selectedLog.students?.length || 0} student{selectedLog.students?.length !== 1 ? "s" : ""}
+        </p>
+        {!selectedLog.students || selectedLog.students.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-4">No student details recorded.</p>
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-gray-100">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-gray-600 text-left">
+                <tr>
+                  <th className="px-4 py-2.5 font-medium">#</th>
+                  <th className="px-4 py-2.5 font-medium">Adm No.</th>
+                  <th className="px-4 py-2.5 font-medium">Name</th>
+                  <th className="px-4 py-2.5 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {selectedLog.students.map((s, i) => (
+                  <tr key={s.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-2.5 text-gray-400">{i + 1}</td>
+                    <td className="px-4 py-2.5 text-blue-600 font-medium">{s.admissionNumber}</td>
+                    <td className="px-4 py-2.5">{s.name}</td>
+                    <td className="px-4 py-2.5">
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                        selectedLog.toGrade === "Graduated"
+                          ? "bg-purple-100 text-purple-700"
+                          : "bg-green-100 text-green-700"
+                      }`}>
+                        {selectedLog.toGrade === "Graduated" ? "Graduated" : `→ ${selectedLog.toGrade}`}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+)}
               </table>
             )}
           </div>
