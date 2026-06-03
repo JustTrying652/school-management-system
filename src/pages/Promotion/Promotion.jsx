@@ -15,7 +15,7 @@ export default function Promotion() {
   const [loading, setLoading] = useState(true);
   const [selectedClassId, setSelectedClassId] = useState("");
   const [promoting, setPromoting] = useState(false);
-  const [confirmModal, setConfirmModal] = useState({ open: false, message: "", onConfirm: null });
+  const [confirmModal, setConfirmModal] = useState({ open: false, message: "",confirmLabel: "Confirm", confirmColor: "bg-blue-600 hover:bg-blue-700", onConfirm: null });
   const [promotionLog, setPromotionLog] = useState([]);
 
   async function fetchData() {
@@ -78,6 +78,8 @@ export default function Promotion() {
     setConfirmModal({
       open: true,
       message: `This will ${action} ${classStudents.length} student${classStudents.length !== 1 ? "s" : ""} from ${selectedClass.name}. They will be moved to ${destination}. This cannot be undone.`,
+      confirmLabel: isGrade12 ? "Graduate" : "Promote",
+      confirmColor: isGrade12 ? "bg-purple-600 hover:bg-purple-700" : "bg-blue-600 hover:bg-blue-700",
       onConfirm: async () => {
         setPromoting(true);
         try {
@@ -337,6 +339,8 @@ export default function Promotion() {
           message={confirmModal.message}
           onConfirm={confirmModal.onConfirm}
           onCancel={() => setConfirmModal({ open: false, message: "", onConfirm: null })}
+          confirmLabel={confirmModal.confirmLabel || "Confirm"}
+          confirmColor={confirmModal.confirmColor || "bg-blue-600 hover:bg-blue-700"}
         />
       )}
     </div>
