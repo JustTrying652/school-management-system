@@ -46,6 +46,7 @@ export default function Library() {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [returning, setReturning] = useState(false);
   // Book modal
   const [showBookModal, setShowBookModal] = useState(false);
   const [bookForm, setBookForm] = useState(emptyBookForm);
@@ -259,33 +260,35 @@ export default function Library() {
   }
 
   async function handleReturn(issue) {
-    setConfirmModal({
-      open: true,
-      message: `Mark "${issue.bookTitle}" as returned by ${issue.studentName}?`,
-      confirmLabel: "Return",
-      confirmColor: "bg-green-600 hover:bg-green-700",
-      onConfirm: async () => {
-        try {
-          await runTransaction(db, async (transaction) => {
-            const bookRef = doc(db, "books", issue.bookId);
-            const bookSnap = await transaction.get(bookRef);
-            const currentAvailable = bookSnap.data().availableCopies;
-            transaction.update(bookRef, { availableCopies: currentAvailable + 1 });
-            transaction.update(doc(db, "bookIssues", issue.id), {
-              status: "returned",
-              returnedDate: new Date().toISOString().split("T")[0],
-            });
+  setConfirmModal({
+    open: true,
+    message: `Mark "${issue.bookTitle}" as returned by ${issue.studentName}?`,
+    confirmLabel: "Return",
+    confirmColor: "bg-green-600 hover:bg-green-700",
+    onConfirm: async () => {
+      setReturning(true);
+      try {
+        await runTransaction(db, async (transaction) => {
+          const bookRef = doc(db, "books", issue.bookId);
+          const bookSnap = await transaction.get(bookRef);
+          const currentAvailable = bookSnap.data().availableCopies;
+          transaction.update(bookRef, { availableCopies: currentAvailable + 1 });
+          transaction.update(doc(db, "bookIssues", issue.id), {
+            status: "returned",
+            returnedDate: new Date().toISOString().split("T")[0],
           });
-          await fetchData();
-          toast({ message: `"${issue.bookTitle}" returned successfully.` });
-        } catch (err) {
-          toast({ message: "Failed to process return.", type: "error" });
-        } finally {
-          setConfirmModal({ open: false, message: "", onConfirm: null });
-        }
-      },
-    });
-  }
+        });
+        await fetchData();
+        toast({ message: `"${issue.bookTitle}" returned successfully.` });
+      } catch (err) {
+        toast({ message: "Failed to process return.", type: "error" });
+      } finally {
+        setReturning(false);
+        setConfirmModal({ open: false, message: "", onConfirm: null });
+      }
+    },
+  });
+}
 
   // ── Filtered data ───────────────────────────────────────
 
@@ -571,14 +574,15 @@ export default function Library() {
                             {!isReadOnly && (
                               <td className="px-6 py-3">
                                 {issue.status !== "returned" && (
-                                  <button
-                                    onClick={() => handleReturn(issue)}
-                                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-green-500 hover:bg-green-600 text-white transition font-medium"
-                                  >
-                                    <RotateCcw size={12} />
-                                    Return
-                                  </button>
-                                )}
+  <button
+    onClick={() => handleReturn(issue)}
+    disabled={returning}
+    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-green-500 hover:bg-green-600 text-white transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+  >
+    <RotateCcw size={12} />
+    {returning ? "..." : "Return"}
+  </button>
+)}
                               </td>
                             )}
                           </tr>

@@ -9,10 +9,10 @@ import {
 } from "lucide-react";
 
 const ALL_NAV_ITEMS = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["Principal", "Teacher", "Bursar", "Librarian"] },
+  { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ["Principal", "Teacher", "Bursar"] },
   { to: "/students", icon: Users, label: "Students", roles: ["Principal", "Teacher", "Librarian"] },
+  { to: "/classes", icon: BookOpen, label: "Classes", roles: ["Principal", "Teacher", "Librarian"] },
   { to: "/teachers", icon: GraduationCap, label: "Teachers", roles: ["Principal"] },
-  { to: "/classes", icon: BookOpen, label: "Classes", roles: ["Principal", "Teacher"] },
   { to: "/fees", icon: Banknote, label: "Fees", roles: ["Principal", "Bursar"] },
   { to: "/attendance", icon: ClipboardList, label: "Attendance", roles: ["Principal", "Teacher"] },
   { to: "/results", icon: FileText, label: "Results", roles: ["Principal", "Teacher"] },

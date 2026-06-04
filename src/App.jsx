@@ -21,11 +21,10 @@ import Library from "./pages/Library/Library";
 
 function ProtectedRoute({ children }) {
   const { currentUser } = useAuth();
-  return currentUser ? (
-    <MainLayout>{children}</MainLayout>
-  ) : (
-    <Navigate to="/login" />
-  );
+  const { role } = useRole();
+  if (!currentUser) return <Navigate to="/login" />;
+  if (role === "Librarian") return <Navigate to="/library" />;
+  return <MainLayout>{children}</MainLayout>;
 }
 
 function RoleRoute({ children, roles }) {

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { getDoc, doc } from "firebase/firestore";
+import { db } from "../../services/firebase";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -11,18 +13,24 @@ export default function Login() {
   const navigate = useNavigate();
 
   async function handleLogin(e) {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-    try {
-      await login(email, password);
+  e.preventDefault();
+  setError("");
+  setLoading(true);
+  try {
+    const userCredential = await login(email, password);
+    const adminDoc = await getDoc(doc(db, "admins", userCredential.user.uid));
+    const role = adminDoc.data()?.role;
+    if (role === "Librarian") {
+      navigate("/library");
+    } else {
       navigate("/");
-    } catch (err) {
-      setError("Invalid email or password. Please try again.");
-    } finally {
-      setLoading(false);
     }
+  } catch (err) {
+    setError("Invalid email or password. Please try again.");
+  } finally {
+    setLoading(false);
   }
+}
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center">
