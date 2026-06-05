@@ -67,9 +67,13 @@ export default function Library() {
   const [filterClass, setFilterClass] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [searchIssues, setSearchIssues] = useState("");
-
   const [confirmModal, setConfirmModal] = useState({ open: false, message: "", onConfirm: null });
-
+  const [bulkClassId, setBulkClassId] = useState("");
+const [bulkBookId, setBulkBookId] = useState("");
+const [bulkDueDate, setBulkDueDate] = useState("");
+const [bulkIssuedDate, setBulkIssuedDate] = useState(new Date().toISOString().split("T")[0]);
+const [bulkSelected, setBulkSelected] = useState([]);
+const [bulkIssuing, setBulkIssuing] = useState(false);
   async function fetchData() {
     setLoading(true);
     try {
@@ -289,8 +293,78 @@ export default function Library() {
     },
   });
 }
+  async function handleBulkIssue() {
+  if (!bulkClassId) return alert("Please select a class.");
+  if (!bulkBookId) return alert("Please select a book.");
+  if (!bulkDueDate) return alert("Please set a due date.");
+  if (bulkSelected.length === 0) return alert("Please select at least one student.");
 
-  // ── Filtered data ───────────────────────────────────────
+  const book = books.find((b) => b.id === bulkBookId);
+  if (!book) return;
+  if (book.availableCopies < bulkSelected.length) {
+    toast({
+      message: `Not enough copies. Only ${book.availableCopies} available but ${bulkSelected.length} selected.`,
+      type: "error",
+    });
+    return;
+  }
+
+  setConfirmModal({
+    open: true,
+    message: `Issue "${book.title}" to ${bulkSelected.length} student${bulkSelected.length !== 1 ? "s" : ""}? This will use ${bulkSelected.length} of ${book.availableCopies} available copies.`,
+    confirmLabel: "Issue All",
+    confirmColor: "bg-blue-600 hover:bg-blue-700",
+    onConfirm: async () => {
+      setBulkIssuing(true);
+      try {
+        const selectedStudents = students.filter((s) => bulkSelected.includes(s.id));
+        const cls = classes.find((c) => c.id === bulkClassId);
+
+        await runTransaction(db, async (transaction) => {
+          const bookRef = doc(db, "books", bulkBookId);
+          const bookSnap = await transaction.get(bookRef);
+          const currentAvailable = bookSnap.data().availableCopies;
+          if (currentAvailable < bulkSelected.length) {
+            throw new Error(`Not enough copies available.`);
+          }
+          transaction.update(bookRef, {
+            availableCopies: currentAvailable - bulkSelected.length,
+          });
+          selectedStudents.forEach((student) => {
+            const issueRef = doc(collection(db, "bookIssues"));
+            transaction.set(issueRef, {
+              studentId: student.id,
+              studentName: `${student.firstName} ${student.lastName}`,
+              admissionNumber: student.admissionNumber,
+              classId: bulkClassId,
+              className: cls?.name || "",
+              grade: student.grade,
+              bookId: bulkBookId,
+              bookNumber: book.bookNumber,
+              bookTitle: book.title,
+              issuedDate: bulkIssuedDate,
+              dueDate: bulkDueDate,
+              status: "issued",
+              returnedDate: null,
+              createdAt: new Date(),
+            });
+          });
+        });
+
+        await fetchData();
+        setBulkSelected([]);
+        toast({ message: `"${book.title}" issued to ${bulkSelected.length} students successfully.` });
+      } catch (err) {
+        console.error(err);
+        toast({ message: err.message || "Failed to bulk issue.", type: "error" });
+      } finally {
+        setBulkIssuing(false);
+        setConfirmModal({ open: false, message: "", onConfirm: null });
+      }
+    },
+  });
+}
+// ── Filtered data ───────────────────────────────────────
 
   const filteredBooks = books.filter((b) => {
     const q = bookSearch.toLowerCase();
@@ -369,6 +443,15 @@ export default function Library() {
             Issue Book
           </button>
         )}
+        {!isReadOnly && activeTab === "bulk" && (
+          <button
+            onClick={openBulkIssueModal}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition"
+          >
+            <FileText size={16} />
+            Bulk Issue
+          </button>
+        )}
       </div>
 
       {/* Summary badges */}
@@ -393,19 +476,19 @@ export default function Library() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit mb-6">
-        {["catalogue", "issues", "reports"].map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition capitalize ${
-              activeTab === tab
-                ? "bg-white text-blue-600 shadow-sm"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            {tab === "catalogue" ? "Book Catalogue" : tab === "issues" ? "Issues & Returns" : "Reports"}
-          </button>
-        ))}
+        {["catalogue", "issues", "bulk", "reports"].map((tab) => (
+  <button
+    key={tab}
+    onClick={() => setActiveTab(tab)}
+    className={`px-4 py-2 rounded-lg text-sm font-medium transition capitalize ${
+      activeTab === tab
+        ? "bg-white text-blue-600 shadow-sm"
+        : "text-gray-500 hover:text-gray-700"
+    }`}
+  >
+    {tab === "catalogue" ? "Book Catalogue" : tab === "issues" ? "Issues & Returns" : tab === "bulk" ? "Bulk Issue" : "Reports"}
+  </button>
+))}
       </div>
 
       {loading ? (
@@ -594,7 +677,197 @@ export default function Library() {
               </div>
             </div>
           )}
+          {/* ── Bulk Issue Tab ── */}
+{activeTab === "bulk" && (
+  <div className="space-y-6">
+    {isReadOnly ? (
+      <div className="bg-white rounded-2xl shadow-sm p-8 text-center text-gray-400 text-sm">
+        You have read-only access to this section.
+      </div>
+    ) : (
+      <>
+        {/* Controls */}
+        <div className="bg-white rounded-2xl shadow-sm p-6">
+          <h2 className="font-semibold text-gray-800 mb-4">Bulk Issue to Class</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Class</label>
+              <select
+                value={bulkClassId}
+                onChange={(e) => {
+                  setBulkClassId(e.target.value);
+                  setBulkSelected([]);
+                }}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select class</option>
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name} — {c.grade}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Book to Issue</label>
+              <select
+                value={bulkBookId}
+                onChange={(e) => setBulkBookId(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select book</option>
+                {books.map((b) => (
+                  <option key={b.id} value={b.id} disabled={b.availableCopies <= 0}>
+                    {b.title} ({b.bookNumber}) — {b.availableCopies} available
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Issue Date</label>
+              <input
+                type="date"
+                value={bulkIssuedDate}
+                onChange={(e) => setBulkIssuedDate(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Due Date</label>
+              <input
+                type="date"
+                value={bulkDueDate}
+                onChange={(e) => setBulkDueDate(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
 
+          {/* Available copies warning */}
+          {bulkBookId && bulkSelected.length > 0 && (() => {
+            const book = books.find((b) => b.id === bulkBookId);
+            return book && bulkSelected.length > book.availableCopies ? (
+              <div className="mt-3 bg-red-50 border border-red-100 rounded-lg px-4 py-2 text-sm text-red-600">
+                Not enough copies — {book.availableCopies} available but {bulkSelected.length} selected.
+              </div>
+            ) : book && bulkSelected.length > 0 ? (
+              <div className="mt-3 bg-green-50 border border-green-100 rounded-lg px-4 py-2 text-sm text-green-600">
+                {bulkSelected.length} cop{bulkSelected.length !== 1 ? "ies" : "y"} will be issued. {book.availableCopies - bulkSelected.length} remaining after.
+              </div>
+            ) : null;
+          })()}
+        </div>
+
+        {/* Student list */}
+        {bulkClassId && (() => {
+          const classStudents = students.filter((s) => s.classId === bulkClassId);
+          const allSelected = classStudents.length > 0 && bulkSelected.length === classStudents.length;
+
+          return (
+            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b flex items-center justify-between">
+                <div>
+                  <h2 className="font-semibold text-gray-800">
+                    {classes.find((c) => c.id === bulkClassId)?.name} Students
+                  </h2>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {bulkSelected.length} of {classStudents.length} selected
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setBulkSelected(
+                      allSelected ? [] : classStudents.map((s) => s.id)
+                    )}
+                    className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    {allSelected ? "Deselect All" : "Select All"}
+                  </button>
+                  {bulkSelected.length > 0 && bulkBookId && bulkDueDate && (
+                    <button
+                      onClick={handleBulkIssue}
+                      disabled={bulkIssuing}
+                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-xl transition disabled:opacity-50"
+                    >
+                      <BookOpen size={14} />
+                      {bulkIssuing ? "Issuing..." : `Issue to ${bulkSelected.length} Students`}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {classStudents.length === 0 ? (
+                <div className="p-8 text-center text-gray-400 text-sm">
+                  No students in this class.
+                </div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-gray-600 text-left">
+                    <tr>
+                      <th className="px-6 py-3 font-medium">
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          onChange={() => setBulkSelected(
+                            allSelected ? [] : classStudents.map((s) => s.id)
+                          )}
+                          className="rounded"
+                        />
+                      </th>
+                      <th className="px-6 py-3 font-medium">Adm No.</th>
+                      <th className="px-6 py-3 font-medium">Name</th>
+                      <th className="px-6 py-3 font-medium">Pathway</th>
+                      <th className="px-6 py-3 font-medium">Already Has Book</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {classStudents.map((student) => {
+                      const alreadyHas = issues.some(
+                        (i) =>
+                          i.studentId === student.id &&
+                          i.bookId === bulkBookId &&
+                          i.status !== "returned"
+                      );
+                      return (
+                        <tr key={student.id} className={`hover:bg-gray-50 ${alreadyHas ? "opacity-50" : ""}`}>
+                          <td className="px-6 py-3">
+                            <input
+                              type="checkbox"
+                              checked={bulkSelected.includes(student.id)}
+                              disabled={alreadyHas}
+                              onChange={() => {
+                                setBulkSelected((prev) =>
+                                  prev.includes(student.id)
+                                    ? prev.filter((id) => id !== student.id)
+                                    : [...prev, student.id]
+                                );
+                              }}
+                              className="rounded"
+                            />
+                          </td>
+                          <td className="px-6 py-3 text-blue-600 font-medium">{student.admissionNumber}</td>
+                          <td className="px-6 py-3">{student.firstName} {student.lastName}</td>
+                          <td className="px-6 py-3 text-gray-500">{student.pathway || "—"}</td>
+                          <td className="px-6 py-3">
+                            {alreadyHas ? (
+                              <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full font-medium">
+                                Already issued
+                              </span>
+                            ) : (
+                              <span className="text-xs text-gray-300">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          );
+        })()}
+      </>
+    )}
+  </div>
+)}
           {/* ── Reports Tab ── */}
           {activeTab === "reports" && (
             <div className="space-y-6">
