@@ -57,13 +57,13 @@ function App() {
         <ProtectedRoute><Dashboard /></ProtectedRoute>
       } />
       <Route path="/students" element={
-        <RoleRoute roles={["Principal", "Teacher"]}><Students /></RoleRoute>
+        <RoleRoute roles={["Principal", "Teacher", "Librarian"]}><Students /></RoleRoute>
       } />
       <Route path="/teachers" element={
         <RoleRoute roles={["Principal"]}><Teachers /></RoleRoute>
       } />
       <Route path="/classes" element={
-        <RoleRoute roles={["Principal", "Teacher"]}><Classes /></RoleRoute>
+        <RoleRoute roles={["Principal", "Teacher", "Librarian"]}><Classes /></RoleRoute>
       } />
       <Route path="/fees" element={
         <RoleRoute roles={["Principal", "Bursar"]}><Fees /></RoleRoute>
