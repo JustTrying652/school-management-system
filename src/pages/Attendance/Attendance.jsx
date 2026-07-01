@@ -412,7 +412,7 @@ export default function Attendance() {
                                         Notify
                                       </button>
                                     ) : (
-                                      <span className="text-xs text-gray-300">No</span>
+                                      <span className="text-xs text-gray-300">No phone</span>
                                     );
                                   })() : (
                                     <span className="text-xs text-gray-300">—</span>
