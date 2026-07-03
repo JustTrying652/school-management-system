@@ -209,7 +209,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Quick actions */}
         <div className="bg-white rounded-2xl shadow-sm p-6">
-          <h2 className="text-base font-semibold text-gray-700 mb-4">Quick </h2>
+          <h2 className="text-base font-semibold text-gray-700 mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 gap-3">
             {quickActions.map(({ label, to }) => (
               <button
