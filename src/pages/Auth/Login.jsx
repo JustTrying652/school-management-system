@@ -95,7 +95,7 @@ export default function Login() {
             href="/parent"
             className="text-sm text-blue-600 hover:text-blue-700 transition"
           >
-            Parent portal →
+            Parent →
           </a>
         </div>
       </div>
