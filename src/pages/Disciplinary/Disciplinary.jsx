@@ -317,7 +317,7 @@ export default function Disciplinary() {
                           <th className="px-6 py-3 font-medium">Date</th>
                           <th className="px-6 py-3 font-medium">Incident</th>
                           <th className="px-6 py-3 font-medium">Severity</th>
-                          <th className="px-6 py-3 font-medium">Action </th>
+                          <th className="px-6 py-3 font-medium">Action Taken</th>
                           <th className="px-6 py-3 font-medium">Recorded By</th>
                           <th className="px-6 py-3 font-medium">Actions</th>
                         </tr>
