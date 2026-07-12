@@ -42,7 +42,7 @@ export default function Login() {
             S
           </div>
           <h1 className="text-2xl font-bold text-gray-800">School Management</h1>
-          <p className="text-gray-500 text-sm mt-1">Admin Portal</p>
+          <p className="text-gray-500 text-sm mt-1">Admin </p>
         </div>
 
         {/* Error */}
